@@ -26,8 +26,27 @@ class HrHireSchemaTest extends TestCase
     {
         $this->assertTrue(Schema::hasTable('candidates'));
         $this->assertTrue(Schema::hasColumns('candidates', [
-            'id', 'job_id', 'name', 'cv_path', 'github_username', 'linkedin_text', 'created_at', 'updated_at',
+            'id', 'job_id', 'name', 'cv_text', 'cv_path', 'github_username', 'linkedin_text', 'created_at', 'updated_at',
         ]));
+    }
+
+    public function test_candidate_can_be_created_from_pasted_cv_text_without_a_file_upload(): void
+    {
+        $job = JobOpening::factory()->create();
+
+        $candidate = Candidate::create([
+            'job_id' => $job->id,
+            'name' => 'Jamie Rivera',
+            'cv_text' => 'Backend engineer with 6 years of Laravel experience.',
+            'cv_path' => null,
+            'github_username' => 'jamierivera',
+            'linkedin_text' => null,
+        ]);
+
+        $reloaded = Candidate::find($candidate->id);
+
+        $this->assertSame('Backend engineer with 6 years of Laravel experience.', $reloaded->cv_text);
+        $this->assertNull($reloaded->cv_path);
     }
 
     public function test_analyses_table_has_expected_columns_and_unique_input_hash(): void

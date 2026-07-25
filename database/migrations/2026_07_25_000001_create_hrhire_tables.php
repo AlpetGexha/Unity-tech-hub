@@ -23,7 +23,8 @@ return new class extends Migration
             $table->id();
             $table->foreignId('job_id')->constrained('job_openings');
             $table->string('name');
-            $table->string('cv_path');
+            $table->text('cv_text');
+            $table->string('cv_path')->nullable();
             $table->string('github_username');
             $table->text('linkedin_text')->nullable();
             $table->timestamps();

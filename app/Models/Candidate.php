@@ -14,13 +14,14 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property int $job_id
  * @property string $name
- * @property string $cv_path
+ * @property string $cv_text
+ * @property string|null $cv_path
  * @property string $github_username
  * @property string|null $linkedin_text
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['job_id', 'name', 'cv_path', 'github_username', 'linkedin_text'])]
+#[Fillable(['job_id', 'name', 'cv_text', 'cv_path', 'github_username', 'linkedin_text'])]
 class Candidate extends Model
 {
     /** @use HasFactory<CandidateFactory> */
