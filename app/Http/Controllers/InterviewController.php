@@ -16,6 +16,8 @@ use RuntimeException;
 
 class InterviewController extends Controller
 {
+    private const PAULA_AUDIO_PATH = 'demo/Paula-2026-07-25-13-15-1-What-is-Laravel-Answer-Laravel-is-a-PHP-framew.mp3';
+
     /**
      * Show the voice interview page for a candidate.
      */
@@ -23,6 +25,18 @@ class InterviewController extends Controller
     {
         return Inertia::render('hr/interview', [
             'candidateId' => $candidate->id,
+            'paulaTest' => [
+                'audioUrl' => asset(self::PAULA_AUDIO_PATH),
+                'question' => [
+                    'question' => 'What is Laravel?',
+                    'targets_skill' => 'Laravel fundamentals',
+                    'grounded_in' => 'Paula demo recording',
+                    'ideal_answer_points' => [
+                        'Laravel is a PHP web application framework.',
+                        'Laravel provides expressive tools for building web applications.',
+                    ],
+                ],
+            ],
         ]);
     }
 
@@ -78,8 +92,11 @@ class InterviewController extends Controller
 
         $transcript = (string) Transcription::fromUpload($request->file('audio'))->generate();
 
-        $graded = (new InterviewGrader($validated['question'], $validated['ideal_answer_points']))
-            ->grade($transcript);
+        $graded = (new InterviewGrader(
+            $validated['question'],
+            $validated['ideal_answer_points'],
+            $candidate->jobOpening?->title,
+        ))->grade($transcript);
 
         return response()->json([
             'transcript' => $transcript,

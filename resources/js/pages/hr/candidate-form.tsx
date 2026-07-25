@@ -9,10 +9,17 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
+import candidateImports from '@/routes/hr/candidate-imports';
 
-type SavedCandidate = {
-    id: number;
+type ExtractedProfile = {
     name: string;
+    github_username: string;
+    linkedin_text: string;
+};
+
+type PreviewResponse = {
+    preview_token: string;
+    profile: ExtractedProfile;
 };
 
 type SelectableJob = {
@@ -35,31 +42,45 @@ const pageHeader = (
         </h1>
 
         <p className="text-sm text-muted-foreground">
-            Upload the CV as a PDF and, if they have one, their GitHub
-            username. We check what the CV claims against the code they have
-            actually published.
+            Upload the CV as a PDF and, if they have one, their GitHub username.
+            We check what the CV claims against the code they have actually
+            published.
         </p>
     </header>
 );
 
 export default function CandidateForm({
-    candidate,
     jobs = [],
 }: {
-    candidate?: SavedCandidate;
     jobs?: SelectableJob[];
 }) {
     const [fileError, setFileError] = useState<string>('');
+    const [profile, setProfile] = useState<ExtractedProfile>({
+        name: '',
+        github_username: '',
+        linkedin_text: '',
+    });
+    const [previewToken, setPreviewToken] = useState<string>('');
+    const [profileStatus, setProfileStatus] = useState<
+        'idle' | 'loading' | 'ready' | 'error'
+    >('idle');
+    const [profileError, setProfileError] = useState<string>('');
 
     /**
-     * The PDF is uploaded as-is; the server converts it to markdown. This only
-     * gives the HR user quick feedback before the request round-trips.
+     * Preview the PDF as soon as it is selected so OpenAI can fill the editable
+     * candidate fields before the HR user saves the record.
      */
-    const validateFile = (event: ChangeEvent<HTMLInputElement>): void => {
+    const validateFile = async (
+        event: ChangeEvent<HTMLInputElement>,
+    ): Promise<void> => {
         const file = event.target.files?.[0];
 
         if (!file) {
             setFileError('');
+            setProfile({ name: '', github_username: '', linkedin_text: '' });
+            setPreviewToken('');
+            setProfileStatus('idle');
+            setProfileError('');
 
             return;
         }
@@ -67,11 +88,65 @@ export default function CandidateForm({
         if (file.type !== 'application/pdf') {
             event.target.value = '';
             setFileError('Please choose a PDF file.');
+            setProfile({ name: '', github_username: '', linkedin_text: '' });
+            setPreviewToken('');
+            setProfileStatus('idle');
+            setProfileError('');
 
             return;
         }
 
         setFileError('');
+        setProfile({ name: '', github_username: '', linkedin_text: '' });
+        setPreviewToken('');
+        setProfileStatus('loading');
+        setProfileError('');
+
+        const formData = new FormData();
+        formData.append('cv_file', file);
+
+        try {
+            const csrfToken = decodeURIComponent(
+                document.cookie
+                    .split('; ')
+                    .find((cookie) => cookie.startsWith('XSRF-TOKEN='))
+                    ?.split('=')[1] ?? '',
+            );
+            const response = await fetch(CandidateController.preview.url(), {
+                method: 'POST',
+                headers: {
+                    Accept: 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    ...(csrfToken ? { 'X-XSRF-TOKEN': csrfToken } : {}),
+                },
+                body: formData,
+            });
+            const payload = (await response.json()) as Partial<
+                PreviewResponse & {
+                    message: string;
+                    errors: Record<string, string[]>;
+                }
+            >;
+
+            if (!response.ok || !payload.preview_token || !payload.profile) {
+                throw new Error(
+                    payload.errors?.cv_file?.[0] ??
+                        payload.message ??
+                        'The PDF could not be read. Please try again.',
+                );
+            }
+
+            setProfile(payload.profile);
+            setPreviewToken(payload.preview_token);
+            setProfileStatus('ready');
+        } catch (error) {
+            setProfileStatus('error');
+            setProfileError(
+                error instanceof Error
+                    ? error.message
+                    : 'The PDF could not be read. Please try again.',
+            );
+        }
     };
 
     if (jobs.length === 0) {
@@ -107,37 +182,97 @@ export default function CandidateForm({
             <div className="mx-auto flex w-full max-w-3xl flex-col gap-8 p-4 md:p-6">
                 {pageHeader}
 
-                {candidate && (
-                    <Form
-                        {...CandidateController.analyze.form(candidate.id)}
-                        disableWhileProcessing
-                        className="space-y-3 rounded-xl border bg-card p-5 text-card-foreground"
-                    >
-                        {({ processing }) => (
-                            <>
+                <Form
+                    {...candidateImports.store.form()}
+                    encType="multipart/form-data"
+                    disableWhileProcessing
+                    className="space-y-6 rounded-xl border bg-card p-5 text-card-foreground"
+                >
+                    {({ processing, errors }) => (
+                        <>
+                            <div className="space-y-1">
                                 <h2 className="font-medium">
-                                    {candidate.name} is saved
+                                    Evaluate candidates from CSV
                                 </h2>
 
                                 <p className="text-sm text-muted-foreground">
-                                    Analysing reads their public GitHub and
-                                    checks every claim on the CV against real
-                                    code. It takes about twenty seconds.
+                                    Choose one role, upload a CSV, and every
+                                    valid row will be evaluated in the queue at
+                                    the same time.
+                                </p>
+                            </div>
+
+                            <div className="grid gap-2">
+                                <Label htmlFor="batch_job_id">Role</Label>
+
+                                <select
+                                    id="batch_job_id"
+                                    name="job_id"
+                                    required
+                                    defaultValue=""
+                                    className={selectClasses}
+                                >
+                                    <option value="" disabled>
+                                        Choose a role
+                                    </option>
+
+                                    {jobs.map((job) => (
+                                        <option key={job.id} value={job.id}>
+                                            {job.title}
+                                        </option>
+                                    ))}
+                                </select>
+
+                                <InputError message={errors.job_id} />
+                            </div>
+
+                            <div className="grid gap-2">
+                                <Label htmlFor="csv_file">Candidate CSV</Label>
+
+                                <Input
+                                    id="csv_file"
+                                    name="csv_file"
+                                    type="file"
+                                    accept=".csv,text/csv"
+                                    required
+                                    className="h-auto py-1.5"
+                                    aria-describedby="csv_file-help"
+                                    aria-invalid={
+                                        errors.csv_file ? true : undefined
+                                    }
+                                />
+
+                                <p
+                                    id="csv_file-help"
+                                    className="text-sm text-muted-foreground"
+                                >
+                                    Required headers:{' '}
+                                    <code className="text-xs">
+                                        name, cv_markdown, github_username
+                                    </code>
+                                    . Optional:{' '}
+                                    <code className="text-xs">
+                                        linkedin_text
+                                    </code>
+                                    .
                                 </p>
 
-                                <Button type="submit" disabled={processing}>
-                                    {processing && <Spinner />}
-                                    {processing
-                                        ? 'Checking the code'
-                                        : 'Analyse this CV'}
-                                </Button>
-                            </>
-                        )}
-                    </Form>
-                )}
+                                <InputError message={errors.csv_file} />
+                            </div>
+
+                            <Button type="submit" disabled={processing}>
+                                {processing && <Spinner />}
+                                {processing
+                                    ? 'Starting evaluation'
+                                    : 'Evaluate CSV candidates'}
+                            </Button>
+                        </>
+                    )}
+                </Form>
 
                 <Form
                     {...CandidateController.store.form()}
+                    encType="multipart/form-data"
                     disableWhileProcessing
                     className="space-y-6"
                 >
@@ -188,6 +323,13 @@ export default function CandidateForm({
                                     required
                                     autoComplete="off"
                                     placeholder="Morgan Kelsey"
+                                    value={profile.name}
+                                    onChange={(event) =>
+                                        setProfile((current) => ({
+                                            ...current,
+                                            name: event.target.value,
+                                        }))
+                                    }
                                     aria-invalid={
                                         errors.name ? true : undefined
                                     }
@@ -224,6 +366,26 @@ export default function CandidateForm({
 
                                 <InputError message={errors.cv_file} />
                                 <InputError message={fileError} />
+                                <InputError message={profileError} />
+                                <input
+                                    type="hidden"
+                                    name="cv_preview_token"
+                                    value={previewToken}
+                                />
+
+                                {profileStatus === 'loading' && (
+                                    <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                                        <Spinner /> Reading the PDF and finding
+                                        profile details&hellip;
+                                    </p>
+                                )}
+
+                                {profileStatus === 'ready' && (
+                                    <p className="text-sm text-muted-foreground">
+                                        AI found these details. Review them and
+                                        edit anything before saving.
+                                    </p>
+                                )}
                             </div>
 
                             <div className="grid gap-2">
@@ -238,6 +400,13 @@ export default function CandidateForm({
                                     autoComplete="off"
                                     spellCheck={false}
                                     placeholder="mkelsey"
+                                    value={profile.github_username}
+                                    onChange={(event) =>
+                                        setProfile((current) => ({
+                                            ...current,
+                                            github_username: event.target.value,
+                                        }))
+                                    }
                                     aria-describedby="github_username-help"
                                     aria-invalid={
                                         errors.github_username
@@ -268,6 +437,13 @@ export default function CandidateForm({
                                     rows={6}
                                     className="min-h-32"
                                     placeholder="Paste the profile text, if you have it."
+                                    value={profile.linkedin_text}
+                                    onChange={(event) =>
+                                        setProfile((current) => ({
+                                            ...current,
+                                            linkedin_text: event.target.value,
+                                        }))
+                                    }
                                     aria-describedby="linkedin_text-help"
                                     aria-invalid={
                                         errors.linkedin_text ? true : undefined
@@ -278,14 +454,19 @@ export default function CandidateForm({
                                     id="linkedin_text-help"
                                     className="text-sm text-muted-foreground"
                                 >
-                                    Paste the text rather than a link. Leave it
-                                    blank if you do not have it.
+                                    AI may find profile text or a link. Review
+                                    it and leave it blank if unavailable.
                                 </p>
 
                                 <InputError message={errors.linkedin_text} />
                             </div>
 
-                            <Button type="submit" disabled={processing}>
+                            <Button
+                                type="submit"
+                                disabled={
+                                    processing || profileStatus === 'loading'
+                                }
+                            >
                                 {processing && <Spinner />}
                                 Save candidate
                             </Button>

@@ -35,6 +35,7 @@ class InterviewGrader implements Agent, HasStructuredOutput
     public function __construct(
         public string $question,
         public array $idealAnswerPoints,
+        public ?string $jobTitle = null,
     ) {}
 
     /**
@@ -62,17 +63,22 @@ class InterviewGrader implements Agent, HasStructuredOutput
      */
     public function instructions(): Stringable|string
     {
-        return implode("\n", [
+        $position = trim((string) $this->jobTitle);
+
+        return implode("\n", array_filter([
             'You are a technical interviewer. Score the candidate\'s spoken answer to the question',
             'below against the ideal answer points, 0-100. Judge only what the answer demonstrates;',
             'do not penalise phrasing, accent, or brevity. Give a short, specific note explaining the score.',
+            $position === '' ? null : "Weigh the answer against what a {$position} needs to know, not a generalist.",
             '',
+            $position === '' ? null : "POSITION\n{$position}",
+            $position === '' ? null : '',
             'QUESTION',
             $this->question,
             '',
             'IDEAL ANSWER POINTS',
             ...array_map(fn (string $point): string => '- '.$point, $this->idealAnswerPoints),
-        ]);
+        ], fn (?string $line): bool => $line !== null));
     }
 
     /**

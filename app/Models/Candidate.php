@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\CandidateInterviewStatus;
 use Database\Factories\CandidateFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -19,14 +20,28 @@ use Illuminate\Support\Carbon;
  * @property string|null $cv_path
  * @property string $github_username
  * @property string|null $linkedin_text
+ * @property CandidateInterviewStatus|null $interview_status
+ * @property string|null $evaluation_status
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['job_id', 'name', 'cv_markdown', 'cv_path', 'github_username', 'linkedin_text'])]
+#[Fillable(['job_id', 'name', 'cv_markdown', 'cv_path', 'github_username', 'linkedin_text', 'interview_status', 'evaluation_status'])]
 class Candidate extends Model
 {
     /** @use HasFactory<CandidateFactory> */
     use HasFactory;
+
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'interview_status' => CandidateInterviewStatus::class,
+        ];
+    }
 
     /**
      * @return BelongsTo<JobOpening, $this>
@@ -64,7 +79,7 @@ class Candidate extends Model
      * Every candidate with their role and latest analysis, shaped for the
      * dashboard and HR candidates list views alike.
      *
-     * @return array<int, array{id: int, name: string, job_title: string|null, fit_score: int|null, recommendation: string|null, analyzed_at: string|null}>
+     * @return array<int, array{id: int, name: string, job_title: string|null, fit_score: int|null, recommendation: string|null, analyzed_at: string|null, interview_status: string|null, can_start_ai_interview: bool}>
      */
     public static function evaluationOverview(): array
     {
@@ -82,6 +97,8 @@ class Candidate extends Model
                     'fit_score' => $overall['fit_score'] ?? null,
                     'recommendation' => $overall['recommendation'] ?? null,
                     'analyzed_at' => $candidate->latestAnalysis?->result['generated_at'] ?? null,
+                    'interview_status' => $candidate->interview_status?->value,
+                    'can_start_ai_interview' => $candidate->interview_status === CandidateInterviewStatus::Interviewed,
                 ];
             })
             ->all();

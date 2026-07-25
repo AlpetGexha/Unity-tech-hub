@@ -25,9 +25,15 @@ Route::prefix('hr')->name('hr.')->group(function (): void {
 
     Route::get('candidates', [CandidateController::class, 'index'])->name('candidates.index');
     Route::get('candidates/create', [CandidateController::class, 'create'])->name('candidates.create');
+    Route::post('candidates/preview', [CandidateController::class, 'preview'])->name('candidates.preview');
     Route::post('candidates', [CandidateController::class, 'store'])->name('candidates.store');
     Route::get('candidates/{candidate}', [CandidateController::class, 'show'])->name('candidates.show');
     Route::post('candidates/{candidate}/analyze', [CandidateController::class, 'analyze'])->name('candidates.analyze');
+    Route::patch('candidates/{candidate}/status', [CandidateController::class, 'updateStatus'])->name('candidates.status');
+
+    Route::post('candidate-imports', [CandidateController::class, 'import'])->name('candidate-imports.store');
+    Route::get('candidate-imports/{candidateImport}', [CandidateController::class, 'importShow'])->name('candidate-imports.show');
+    Route::get('candidate-imports/{candidateImport}/status', [CandidateController::class, 'importStatus'])->name('candidate-imports.status');
 
     Route::get('candidates/{candidate}/analysis', [AnalysisController::class, 'show'])->name('candidates.analysis');
 

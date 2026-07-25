@@ -45,6 +45,10 @@ class HrAnalyzeTest extends TestCase
             ->assertRedirect('/hr/candidates/'.$candidate->id);
 
         $this->assertDatabaseCount('analyses', 1);
+        $this->assertDatabaseHas('candidates', [
+            'id' => $candidate->id,
+            'evaluation_status' => 'completed',
+        ]);
 
         $result = Analysis::firstOrFail()->result;
 

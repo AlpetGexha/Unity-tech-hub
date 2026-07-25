@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Analysis;
 use App\Models\Candidate;
+use App\Models\Interview;
 use App\Models\JobOpening;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Routing\Route as RoutingRoute;
@@ -62,10 +63,31 @@ class HrCandidatesIndexTest extends TestCase
                 ->where('candidates.0.job_title', 'Senior Laravel Engineer')
                 ->where('candidates.0.fit_score', null)
                 ->where('candidates.0.recommendation', null)
+                ->where('candidates.0.interview_status', null)
                 ->where('candidates.1.name', 'Jamie Rivera')
                 ->where('candidates.1.fit_score', 82)
                 ->where('candidates.1.recommendation', 'yes')
                 ->where('candidates.1.analyzed_at', '2026-07-01T00:00:00Z')
+            );
+    }
+
+    public function test_the_hr_candidates_page_includes_the_interview_status(): void
+    {
+        $candidate = Candidate::factory()->create([
+            'name' => 'Jamie Rivera',
+            'interview_status' => 'interviewed',
+        ]);
+
+        Interview::create([
+            'candidate_id' => $candidate->id,
+            'result' => [['question' => 'What is Laravel?']],
+        ]);
+
+        $this->get('/hr/candidates')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('candidates.0.interview_status', 'interviewed')
+                ->where('candidates.0.can_start_ai_interview', true)
             );
     }
 

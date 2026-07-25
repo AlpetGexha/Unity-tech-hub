@@ -35,7 +35,7 @@ class HrHireSchemaTest extends TestCase
     {
         $this->assertTrue(Schema::hasTable('candidates'));
         $this->assertTrue(Schema::hasColumns('candidates', [
-            'id', 'job_id', 'name', 'cv_markdown', 'cv_path', 'github_username', 'linkedin_text', 'created_at', 'updated_at',
+            'id', 'job_id', 'name', 'cv_markdown', 'cv_path', 'github_username', 'linkedin_text', 'interview_status', 'evaluation_status', 'created_at', 'updated_at',
         ]));
     }
 

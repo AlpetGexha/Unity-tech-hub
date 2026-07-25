@@ -1,8 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
-import {
-    CandidatesTable,
-    type EvaluationOverviewCandidate,
-} from '@/components/candidates-table';
+import { CandidatesTable } from '@/components/candidates-table';
+import type { EvaluationOverviewCandidate } from '@/components/candidates-table';
 import { Button } from '@/components/ui/button';
 import { dashboard } from '@/routes';
 import { create as candidateCreate } from '@/routes/hr/candidates';

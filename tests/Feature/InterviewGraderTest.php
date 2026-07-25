@@ -74,6 +74,29 @@ class InterviewGraderTest extends TestCase
         $this->assertStringContainsString('Mentions queue prioritisation', $instructions);
     }
 
+    public function test_instructions_include_the_job_title_when_present(): void
+    {
+        $grader = new InterviewGrader(
+            question: 'Question?',
+            idealAnswerPoints: ['Point one'],
+            jobTitle: 'Senior Backend Engineer',
+        );
+
+        $instructions = (string) $grader->instructions();
+
+        $this->assertStringContainsString('Senior Backend Engineer', $instructions);
+    }
+
+    public function test_instructions_omit_the_position_section_without_a_job_title(): void
+    {
+        $grader = new InterviewGrader(
+            question: 'Question?',
+            idealAnswerPoints: ['Point one'],
+        );
+
+        $this->assertStringNotContainsString('POSITION', (string) $grader->instructions());
+    }
+
     public function test_the_agent_is_configured_for_deterministic_strict_openai_output(): void
     {
         $reflection = new ReflectionClass(InterviewGrader::class);

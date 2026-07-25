@@ -12,6 +12,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia;
 use Laravel\Ai\Audio;
+use Laravel\Ai\Prompts\AgentPrompt;
 use Laravel\Ai\Transcription;
 use Tests\TestCase;
 
@@ -28,6 +29,12 @@ class HrInterviewTest extends TestCase
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->component('hr/interview')
                 ->where('candidateId', $candidate->id)
+                ->where('paulaTest.question.question', 'What is Laravel?')
+                ->where('paulaTest.audioUrl', asset('demo/Paula-2026-07-25-13-15-1-What-is-Laravel-Answer-Laravel-is-a-PHP-framew.mp3'))
+                ->where('paulaTest.question.ideal_answer_points', [
+                    'Laravel is a PHP web application framework.',
+                    'Laravel provides expressive tools for building web applications.',
+                ])
             );
     }
 
@@ -87,6 +94,10 @@ class HrInterviewTest extends TestCase
                 'score' => 82,
                 'notes' => 'Solid, specific answer.',
             ]);
+
+        InterviewGrader::assertPrompted(
+            fn (AgentPrompt $prompt): bool => $prompt->agent->jobTitle === $candidate->jobOpening->title
+        );
     }
 
     public function test_report_stores_the_completed_interview(): void

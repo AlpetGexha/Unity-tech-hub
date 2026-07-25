@@ -1,10 +1,11 @@
 import { Head, Link } from '@inertiajs/react';
-import {
-    CandidatesTable,
-    type EvaluationOverviewCandidate,
-} from '@/components/candidates-table';
+import { CandidatesTable } from '@/components/candidates-table';
+import type { EvaluationOverviewCandidate } from '@/components/candidates-table';
 import { Button } from '@/components/ui/button';
-import { create as candidateCreate, index as candidatesIndex } from '@/routes/hr/candidates';
+import {
+    create as candidateCreate,
+    index as candidatesIndex,
+} from '@/routes/hr/candidates';
 
 export default function Candidates({
     candidates = [],
@@ -22,9 +23,8 @@ export default function Candidates({
                     </h1>
 
                     <p className="text-sm text-muted-foreground">
-                        The full candidate roster, so you can check
-                        evaluation status without digging through the
-                        dashboard.
+                        The full candidate roster, so you can check evaluation
+                        status without digging through the dashboard.
                     </p>
                 </header>
 

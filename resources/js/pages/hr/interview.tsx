@@ -1,6 +1,6 @@
 import { Head } from '@inertiajs/react';
 import { CircleAlert, Mic, Square } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import InterviewController from '@/actions/App/Http/Controllers/InterviewController';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
@@ -19,19 +19,9 @@ type GradedAnswer = Grade & {
 type Phase =
     'loading' | 'ready' | 'recording' | 'grading' | 'graded' | 'complete';
 
-const FALLBACK_AUDIO = '/demo/fallback-interview.mp3';
-
-/**
- * Shift+F escape hatch. If the venue has no working microphone, or the mic
- * permission prompt goes wrong on stage, this plays a pre-recorded clip and
- * shows a scripted grade so the loop can still be demonstrated. It never
- * touches the network, so it also survives the wifi dying.
- */
-const FALLBACK_GRADE: Grade = {
-    transcript:
-        'The service keys every incoming webhook on the Stripe event ID before it does anything else. If we have already processed that ID we return early, and that is what stops a retried delivery from charging the customer twice. Without the idempotency check the queued retry backoff would replay the same event and we would write duplicate invoices.',
-    score: 78,
-    notes: 'Explains the idempotency key clearly and correctly connects the retry backoff to duplicate deliveries. Does not say what happens if the check fails partway through a transaction.',
+type PaulaTest = {
+    audioUrl: string;
+    question: InterviewQuestion;
 };
 
 const csrfToken = (): string => {
@@ -62,10 +52,19 @@ const postJson = async <T,>(url: string, body: unknown): Promise<T> => {
     return response.json() as Promise<T>;
 };
 
-export default function Interview({ candidateId }: { candidateId: number }) {
+export default function Interview({
+    candidateId,
+    paulaTest,
+}: {
+    candidateId: number;
+    paulaTest: PaulaTest;
+}) {
     const [index, setIndex] = useState(0);
-    const [question, setQuestion] = useState<InterviewQuestion | null>(null);
-    const [audioUrl, setAudioUrl] = useState('');
+    const [isPaulaTest, setIsPaulaTest] = useState(true);
+    const [question, setQuestion] = useState<InterviewQuestion | null>(
+        paulaTest.question,
+    );
+    const [audioUrl, setAudioUrl] = useState(paulaTest.audioUrl);
     const [grade, setGrade] = useState<Grade | null>(null);
     const [answers, setAnswers] = useState<GradedAnswer[]>([]);
     const [phase, setPhase] = useState<Phase>('loading');
@@ -85,6 +84,14 @@ export default function Interview({ candidateId }: { candidateId: number }) {
             setGrade(null);
             setAudioUrl('');
             setError('');
+
+            if (isPaulaTest) {
+                setQuestion(paulaTest.question);
+                setAudioUrl(paulaTest.audioUrl);
+                setPhase('ready');
+
+                return;
+            }
 
             let loaded: InterviewQuestion;
 
@@ -167,7 +174,7 @@ export default function Interview({ candidateId }: { candidateId: number }) {
         return () => {
             cancelled = true;
         };
-    }, [index, candidateId]);
+    }, [index, candidateId, isPaulaTest, paulaTest]);
 
     useEffect(() => {
         if (phase !== 'complete' || reportSent.current) {
@@ -184,6 +191,88 @@ export default function Interview({ candidateId }: { candidateId: number }) {
             );
         });
     }, [phase, answers, candidateId]);
+
+    const releaseMicrophone = (): void => {
+        stream.current?.getTracks().forEach((track) => track.stop());
+        stream.current = null;
+    };
+
+    useEffect(() => releaseMicrophone, []);
+
+    const submitAnswer = useCallback(
+        async (
+            recorded: Blob,
+            answerQuestion: InterviewQuestion | null = question,
+            filename = 'answer.webm',
+        ): Promise<void> => {
+            if (!answerQuestion) {
+                return;
+            }
+
+            const payload = new FormData();
+
+            payload.append('audio', recorded, filename);
+            payload.append('question', answerQuestion.question);
+            answerQuestion.ideal_answer_points.forEach((point) => {
+                payload.append('ideal_answer_points[]', point);
+            });
+
+            try {
+                const response = await fetch(
+                    InterviewController.answer.url(candidateId),
+                    {
+                        method: 'post',
+                        headers: {
+                            Accept: 'application/json',
+                            'X-XSRF-TOKEN': csrfToken(),
+                        },
+                        body: payload,
+                    },
+                );
+
+                if (!response.ok) {
+                    throw new Error(String(response.status));
+                }
+
+                setGrade((await response.json()) as Grade);
+                setPhase('graded');
+            } catch {
+                setError(
+                    'We could not transcribe that answer. Record it again, or run the Paula real-API test.',
+                );
+                setPhase('ready');
+            }
+        },
+        [candidateId, question],
+    );
+
+    const runPaulaTest = useCallback(async (): Promise<void> => {
+        setError('');
+        setGrade(null);
+        setQuestion(paulaTest.question);
+        setAudioUrl(paulaTest.audioUrl);
+        setIsPaulaTest(true);
+        setPhase('grading');
+
+        try {
+            const response = await fetch(paulaTest.audioUrl);
+
+            if (!response.ok) {
+                throw new Error(String(response.status));
+            }
+
+            await submitAnswer(
+                await response.blob(),
+                paulaTest.question,
+                'paula-interview.mp3',
+            );
+        } catch {
+            setError(
+                'The Paula recording could not be transcribed or graded. Check OPENAI_API_KEY and DEMO_FAKE_AI=false, then try again.',
+            );
+            setPhase('ready');
+        }
+    }, [paulaTest, submitAnswer]);
 
     useEffect(() => {
         const onKeyDown = (event: KeyboardEvent): void => {
@@ -203,63 +292,13 @@ export default function Interview({ candidateId }: { candidateId: number }) {
             }
 
             event.preventDefault();
-            setAudioUrl(FALLBACK_AUDIO);
-            setGrade(FALLBACK_GRADE);
-            setError('');
-            setPhase('graded');
+            void runPaulaTest();
         };
 
         window.addEventListener('keydown', onKeyDown);
 
         return () => window.removeEventListener('keydown', onKeyDown);
-    }, []);
-
-    const releaseMicrophone = (): void => {
-        stream.current?.getTracks().forEach((track) => track.stop());
-        stream.current = null;
-    };
-
-    useEffect(() => releaseMicrophone, []);
-
-    const submitAnswer = async (recorded: Blob): Promise<void> => {
-        if (!question) {
-            return;
-        }
-
-        const payload = new FormData();
-
-        payload.append('audio', recorded, 'answer.webm');
-        payload.append('question', question.question);
-        question.ideal_answer_points.forEach((point) => {
-            payload.append('ideal_answer_points[]', point);
-        });
-
-        try {
-            const response = await fetch(
-                InterviewController.answer.url(candidateId),
-                {
-                    method: 'post',
-                    headers: {
-                        Accept: 'application/json',
-                        'X-XSRF-TOKEN': csrfToken(),
-                    },
-                    body: payload,
-                },
-            );
-
-            if (!response.ok) {
-                throw new Error(String(response.status));
-            }
-
-            setGrade((await response.json()) as Grade);
-            setPhase('graded');
-        } catch {
-            setError(
-                'We could not transcribe that answer. Record it again, or press Shift+F to use the standby clip.',
-            );
-            setPhase('ready');
-        }
-    };
+    }, [runPaulaTest]);
 
     const startRecording = async (): Promise<void> => {
         setError('');
@@ -300,7 +339,7 @@ export default function Interview({ candidateId }: { candidateId: number }) {
             setPhase('recording');
         } catch {
             setError(
-                'We could not reach the microphone. Give the browser permission and try again, or press Shift+F to use the standby clip.',
+                'We could not reach the microphone. Give the browser permission and try again, or run the Paula real-API test.',
             );
         }
     };
@@ -317,6 +356,14 @@ export default function Interview({ candidateId }: { candidateId: number }) {
                 ...previous,
                 { ...grade, question: question.question },
             ]);
+        }
+
+        if (isPaulaTest) {
+            setIsPaulaTest(false);
+            setGrade(null);
+            setAudioUrl('');
+
+            return;
         }
 
         setIndex((previous) => previous + 1);
@@ -445,7 +492,11 @@ export default function Interview({ candidateId }: { candidateId: number }) {
                             controls
                             src={audioUrl}
                             className="w-full"
-                            aria-label="The question read aloud"
+                            aria-label={
+                                isPaulaTest
+                                    ? 'Paula question and answer test recording'
+                                    : 'The question read aloud'
+                            }
                         >
                             Your browser cannot play audio. Read the question
                             above instead.
@@ -453,6 +504,19 @@ export default function Interview({ candidateId }: { candidateId: number }) {
                     )}
 
                     <div className="flex flex-wrap items-center gap-3 pt-1">
+                        {isPaulaTest && (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => void runPaulaTest()}
+                                disabled={
+                                    phase === 'loading' || phase === 'grading'
+                                }
+                            >
+                                Test Paula recording with real API
+                            </Button>
+                        )}
+
                         {phase === 'recording' ? (
                             <Button type="button" onClick={stopRecording}>
                                 <Square aria-hidden="true" />

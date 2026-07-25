@@ -1,4 +1,5 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, usePoll } from '@inertiajs/react';
+import { useEffect } from 'react';
 import CandidateController from '@/actions/App/Http/Controllers/CandidateController';
 import { ClaimList } from '@/components/claim-list';
 import { DecisionReport } from '@/components/decision-report';
@@ -39,9 +40,31 @@ const analysedOn = (generatedAt: string): string => {
 
 export default function CandidateAnalysis({
     analysis,
+    evaluationStatus = null,
 }: {
     analysis?: Analysis | null;
+    evaluationStatus?: 'pending' | 'running' | 'completed' | 'failed' | null;
 }) {
+    const isEvaluating =
+        !analysis?.overall &&
+        (evaluationStatus === 'pending' || evaluationStatus === 'running');
+    const { stop } = usePoll(
+        2000,
+        {
+            only: ['analysis', 'evaluationStatus'],
+        },
+        {
+            mode: 'rest',
+            autoStart: isEvaluating,
+        },
+    );
+
+    useEffect(() => {
+        if (!isEvaluating) {
+            stop();
+        }
+    }, [isEvaluating, stop]);
+
     /**
      * Never fall back to the mock. A missing or renamed prop must look empty,
      * because a page that quietly renders a fabricated candidate is worse than
@@ -60,13 +83,20 @@ export default function CandidateAnalysis({
                     </header>
 
                     <div className="space-y-3 rounded-xl border bg-card p-6 text-card-foreground">
-                        <h2 className="font-medium">No analysis yet</h2>
+                        <h2 className="font-medium">
+                            {evaluationStatus === 'failed'
+                                ? 'Evaluation failed'
+                                : isEvaluating
+                                  ? 'Evaluation in progress'
+                                  : 'No analysis yet'}
+                        </h2>
 
                         <p className="max-w-prose text-sm text-muted-foreground">
-                            Nothing has been analysed for this candidate. Run an
-                            analysis and the fit score, the skill breakdown and
-                            every CV claim checked against real code will appear
-                            here.
+                            {evaluationStatus === 'failed'
+                                ? 'The AI evaluation could not be completed. Please retry the evaluation from the candidate workflow.'
+                                : isEvaluating
+                                  ? 'The candidate was saved. The AI is checking the CV against the role and public GitHub now. This page will update automatically when the result is ready.'
+                                  : 'Nothing has been analysed for this candidate yet. The fit score, skill breakdown and every CV claim checked against real code will appear here.'}
                         </p>
 
                         <Button asChild>
