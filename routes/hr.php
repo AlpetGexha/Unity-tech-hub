@@ -21,7 +21,11 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('hr')->name('hr.')->group(function (): void {
     Route::get('jobs', [JobController::class, 'index'])->name('jobs.index');
+    Route::get('jobs/create', [JobController::class, 'create'])->name('jobs.create');
     Route::post('jobs', [JobController::class, 'store'])->name('jobs.store');
+    Route::get('jobs/{job}', [JobController::class, 'show'])->name('jobs.show');
+    Route::get('jobs/{job}/edit', [JobController::class, 'edit'])->name('jobs.edit');
+    Route::put('jobs/{job}', [JobController::class, 'update'])->name('jobs.update');
 
     Route::get('candidates', [CandidateController::class, 'index'])->name('candidates.index');
     Route::get('candidates/create', [CandidateController::class, 'create'])->name('candidates.create');

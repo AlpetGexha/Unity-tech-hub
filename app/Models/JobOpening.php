@@ -90,7 +90,7 @@ class JobOpening extends Model
      */
     public function candidates(): HasMany
     {
-        return $this->hasMany(Candidate::class);
+        return $this->hasMany(Candidate::class, 'job_id');
     }
 
     /**

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Candidate;
 use App\Models\JobOpening;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia;
@@ -11,11 +12,61 @@ class HrJobsTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_the_role_form_renders(): void
+    public function test_the_roles_index_renders_existing_roles(): void
     {
+        $firstRole = JobOpening::factory()->create(['title' => 'Backend Engineer']);
+        $secondRole = JobOpening::factory()->create(['title' => 'Product Designer']);
+
         $this->get('/hr/jobs')
             ->assertOk()
-            ->assertInertia(fn (AssertableInertia $page) => $page->component('hr/jobs'));
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('hr/jobs')
+                ->has('jobs', 2)
+                ->where('jobs.0.id', $firstRole->id)
+                ->where('jobs.1.id', $secondRole->id));
+    }
+
+    public function test_the_role_create_page_renders_an_empty_form(): void
+    {
+        $this->get('/hr/jobs/create')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('hr/job-form')
+                ->where('job', null));
+    }
+
+    public function test_a_role_can_be_viewed_with_its_candidates(): void
+    {
+        $role = JobOpening::factory()->create(['title' => 'Backend Engineer']);
+        $candidate = Candidate::factory()->for($role, 'jobOpening')->create(['name' => 'Morgan Kelsey']);
+
+        $this->get('/hr/jobs/'.$role->id)
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('hr/job-show')
+                ->where('job.id', $role->id)
+                ->where('job.title', 'Backend Engineer')
+                ->has('job.candidates', 1)
+                ->where('job.candidates.0.id', $candidate->id)
+                ->where('job.candidates.0.name', 'Morgan Kelsey'));
+    }
+
+    public function test_the_role_edit_page_renders_the_selected_role(): void
+    {
+        $role = JobOpening::factory()->create([
+            'title' => 'Backend Engineer',
+            'requirements' => 'Laravel experience',
+            'priorities' => 'Evidence over claims',
+        ]);
+
+        $this->get('/hr/jobs/'.$role->id.'/edit')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('hr/job-form')
+                ->where('job.id', $role->id)
+                ->where('job.title', 'Backend Engineer')
+                ->where('job.requirements', 'Laravel experience')
+                ->where('job.priorities', 'Evidence over claims'));
     }
 
     public function test_a_role_can_be_saved(): void
@@ -26,12 +77,56 @@ class HrJobsTest extends TestCase
             'priorities' => 'Ships evidence, not buzzwords.',
         ]);
 
-        $response->assertRedirectToRoute('hr.candidates.create');
+        $response->assertRedirectToRoute('hr.jobs.index');
 
         $this->assertDatabaseHas('job_openings', [
             'title' => 'Senior Laravel Engineer',
             'priorities' => 'Ships evidence, not buzzwords.',
         ]);
+    }
+
+    public function test_a_role_can_be_updated(): void
+    {
+        $role = JobOpening::factory()->create();
+
+        $response = $this->put('/hr/jobs/'.$role->id, [
+            'title' => 'Senior Laravel Engineer',
+            'requirements' => 'Five years of PHP.',
+            'priorities' => 'Ships evidence, not buzzwords.',
+        ]);
+
+        $response->assertRedirectToRoute('hr.jobs.index');
+
+        $this->assertDatabaseHas('job_openings', [
+            'id' => $role->id,
+            'title' => 'Senior Laravel Engineer',
+            'requirements' => 'Five years of PHP.',
+            'priorities' => 'Ships evidence, not buzzwords.',
+        ]);
+    }
+
+    public function test_view_and_edit_reject_a_missing_role(): void
+    {
+        $this->get('/hr/jobs/999999')->assertNotFound();
+        $this->get('/hr/jobs/999999/edit')->assertNotFound();
+        $this->put('/hr/jobs/999999', [
+            'title' => 'Missing role',
+            'requirements' => 'Anything',
+            'priorities' => 'Anything',
+        ])->assertNotFound();
+    }
+
+    public function test_an_existing_role_update_needs_a_title_requirements_and_priorities(): void
+    {
+        $role = JobOpening::factory()->create();
+
+        $this->put('/hr/jobs/'.$role->id, [
+            'title' => '',
+            'requirements' => '',
+            'priorities' => '',
+        ])->assertSessionHasErrors(['title', 'requirements', 'priorities']);
+
+        $this->assertModelExists($role);
     }
 
     public function test_a_role_needs_a_title_requirements_and_priorities(): void

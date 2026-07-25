@@ -1,130 +1,143 @@
-import { Form, Head } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import JobController from '@/actions/App/Http/Controllers/JobController';
-import InputError from '@/components/input-error';
+import type { Role } from '@/components/role-form';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Spinner } from '@/components/ui/spinner';
-import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent } from '@/components/ui/card';
 
-export default function Jobs() {
+function formatDate(date: string | null | undefined): string {
+    if (!date) {
+        return '—';
+    }
+
+    return new Intl.DateTimeFormat(undefined, {
+        dateStyle: 'medium',
+    }).format(new Date(date));
+}
+
+function RoleSummary({ text }: { text: string }) {
+    return (
+        <p className="line-clamp-2 text-sm whitespace-pre-line text-muted-foreground">
+            {text}
+        </p>
+    );
+}
+
+export default function Jobs({ jobs = [] }: { jobs?: Role[] }) {
     return (
         <>
-            <Head title="Add a role" />
+            <Head title="Roles" />
 
-            <div className="mx-auto flex w-full max-w-3xl flex-col gap-8 p-4 md:p-6">
-                <header className="space-y-1">
-                    <h1 className="text-xl font-semibold tracking-tight">
-                        Add a role
-                    </h1>
+            <div className="flex h-full flex-1 flex-col gap-6 overflow-x-auto rounded-xl p-4 md:p-6">
+                <header className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
+                    <div className="space-y-1">
+                        <h1 className="text-xl font-semibold tracking-tight">
+                            Roles
+                        </h1>
 
-                    <p className="text-sm text-muted-foreground">
-                        Describe the role once. Every candidate you add is
-                        checked against what you write here.
-                    </p>
+                        <p className="text-sm text-muted-foreground">
+                            Manage the roles candidates are evaluated against.
+                        </p>
+                    </div>
+
+                    <Button asChild>
+                        <Link href={JobController.create()}>Create role</Link>
+                    </Button>
                 </header>
 
-                <Form
-                    {...JobController.store.form()}
-                    disableWhileProcessing
-                    className="space-y-6"
-                >
-                    {({ processing, errors }) => (
-                        <>
-                            <div className="grid gap-2">
-                                <Label htmlFor="title">Role title</Label>
+                {jobs.length === 0 ? (
+                    <Card>
+                        <CardContent className="space-y-3 pt-6">
+                            <h2 className="font-medium">No roles yet</h2>
 
-                                <Input
-                                    id="title"
-                                    name="title"
-                                    required
-                                    autoComplete="off"
-                                    placeholder="Senior Backend Engineer"
-                                    aria-describedby="title-help"
-                                    aria-invalid={
-                                        errors.title ? true : undefined
-                                    }
-                                />
+                            <p className="max-w-prose text-sm text-muted-foreground">
+                                Create a role to start evaluating candidates
+                                against clear requirements and priorities.
+                            </p>
 
-                                <p
-                                    id="title-help"
-                                    className="text-sm text-muted-foreground"
-                                >
-                                    The title candidates will see on the report.
-                                </p>
-
-                                <InputError message={errors.title} />
-                            </div>
-
-                            <div className="grid gap-2">
-                                <Label htmlFor="requirements">
-                                    What the role needs
-                                </Label>
-
-                                <Textarea
-                                    id="requirements"
-                                    name="requirements"
-                                    required
-                                    rows={8}
-                                    className="min-h-40"
-                                    placeholder={
-                                        'Production PHP and Laravel, at least three years\nDesigning and versioning REST APIs\nAutomated tests they wrote themselves'
-                                    }
-                                    aria-describedby="requirements-help"
-                                    aria-invalid={
-                                        errors.requirements ? true : undefined
-                                    }
-                                />
-
-                                <p
-                                    id="requirements-help"
-                                    className="text-sm text-muted-foreground"
-                                >
-                                    One requirement per line. These become the
-                                    criteria every candidate is scored against.
-                                </p>
-
-                                <InputError message={errors.requirements} />
-                            </div>
-
-                            <div className="grid gap-2">
-                                <Label htmlFor="priorities">
-                                    What matters most
-                                </Label>
-
-                                <Textarea
-                                    id="priorities"
-                                    name="priorities"
-                                    rows={5}
-                                    className="min-h-28"
-                                    placeholder={
-                                        'Real production code counts for more than side projects.\nWe would rather see honest gaps than padded claims.'
-                                    }
-                                    aria-describedby="priorities-help"
-                                    aria-invalid={
-                                        errors.priorities ? true : undefined
-                                    }
-                                />
-
-                                <p
-                                    id="priorities-help"
-                                    className="text-sm text-muted-foreground"
-                                >
-                                    Say which requirements carry the most
-                                    weight, and why. This shapes how the scores
-                                    are balanced.
-                                </p>
-
-                                <InputError message={errors.priorities} />
-                            </div>
-
-                            <Button type="submit" disabled={processing}>
-                                {processing && <Spinner />}
-                                Save role
+                            <Button asChild>
+                                <Link href={JobController.create()}>
+                                    Create your first role
+                                </Link>
                             </Button>
-                        </>
-                    )}
-                </Form>
+                        </CardContent>
+                    </Card>
+                ) : (
+                    <div className="overflow-x-auto rounded-xl border bg-card text-card-foreground">
+                        <table className="w-full min-w-[760px] text-left text-sm">
+                            <thead className="border-b bg-muted/50 text-muted-foreground">
+                                <tr>
+                                    <th className="px-4 py-3 font-medium">
+                                        Role
+                                    </th>
+                                    <th className="px-4 py-3 font-medium">
+                                        Requirements
+                                    </th>
+                                    <th className="px-4 py-3 font-medium">
+                                        Priorities
+                                    </th>
+                                    <th className="px-4 py-3 font-medium">
+                                        Created
+                                    </th>
+                                    <th className="px-4 py-3 text-right font-medium">
+                                        Actions
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y">
+                                {jobs.map((job) => (
+                                    <tr key={job.id} className="align-top">
+                                        <td className="px-4 py-4 font-medium">
+                                            {job.title}
+                                        </td>
+                                        <td className="max-w-xs px-4 py-4">
+                                            <RoleSummary
+                                                text={job.requirements}
+                                            />
+                                        </td>
+                                        <td className="max-w-xs px-4 py-4">
+                                            <RoleSummary
+                                                text={job.priorities}
+                                            />
+                                        </td>
+                                        <td className="px-4 py-4 whitespace-nowrap text-muted-foreground">
+                                            {formatDate(job.created_at)}
+                                        </td>
+                                        <td className="px-4 py-4">
+                                            <div className="flex justify-end gap-2">
+                                                <Button
+                                                    asChild
+                                                    size="sm"
+                                                    variant="outline"
+                                                >
+                                                    <Link
+                                                        href={JobController.show(
+                                                            job.id,
+                                                        )}
+                                                    >
+                                                        View
+                                                    </Link>
+                                                </Button>
+                                                <Button
+                                                    asChild
+                                                    size="sm"
+                                                    variant="ghost"
+                                                >
+                                                    <Link
+                                                        href={JobController.edit(
+                                                            job.id,
+                                                        )}
+                                                    >
+                                                        Edit
+                                                    </Link>
+                                                </Button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
             </div>
         </>
     );
@@ -133,7 +146,7 @@ export default function Jobs() {
 Jobs.layout = {
     breadcrumbs: [
         {
-            title: 'Add a role',
+            title: 'Roles',
             href: JobController.index(),
         },
     ],
