@@ -59,4 +59,31 @@ class Candidate extends Model
     {
         return $this->hasOne(Analysis::class)->latestOfMany('id');
     }
+
+    /**
+     * Every candidate with their role and latest analysis, shaped for the
+     * dashboard and HR candidates list views alike.
+     *
+     * @return array<int, array{id: int, name: string, job_title: string|null, fit_score: int|null, recommendation: string|null, analyzed_at: string|null}>
+     */
+    public static function evaluationOverview(): array
+    {
+        return static::query()
+            ->with(['jobOpening:id,title', 'latestAnalysis'])
+            ->orderBy('name')
+            ->get()
+            ->map(function (Candidate $candidate): array {
+                $overall = $candidate->latestAnalysis?->result['overall'] ?? null;
+
+                return [
+                    'id' => $candidate->id,
+                    'name' => $candidate->name,
+                    'job_title' => $candidate->jobOpening?->title,
+                    'fit_score' => $overall['fit_score'] ?? null,
+                    'recommendation' => $overall['recommendation'] ?? null,
+                    'analyzed_at' => $candidate->latestAnalysis?->result['generated_at'] ?? null,
+                ];
+            })
+            ->all();
+    }
 }

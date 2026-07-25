@@ -18,6 +18,16 @@ use Inertia\Response;
 class CandidateController extends Controller
 {
     /**
+     * Show every candidate with their role and latest analysis, so HR has a
+     * stable roster to check evaluation status against, separate from the
+     * general dashboard.
+     */
+    public function index(): Response
+    {
+        return Inertia::render('hr/candidates', ['candidates' => Candidate::evaluationOverview()]);
+    }
+
+    /**
      * Show the form for adding a candidate to a role.
      */
     public function create(): Response
