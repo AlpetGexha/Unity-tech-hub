@@ -238,8 +238,21 @@ public function test_analyzer_result_matches_contract(): void {
 **Interfaces:**
 - Produces: `POST /candidates/{c}/analyze` → computes `input_hash = sha256(job + cv + github + linkedin)`; if `analyses` row exists returns it, else runs `CandidateAnalyzer`, stamps `generated_at`, saves row, returns `result`. `GET /candidates/{c}/analysis` → stored `result` JSON for the Dashboard.
 
-- [ ] **Step 1:** `JobController@store/index/show` (Inertia). `CandidateController@store` (saves `cv_text` from the textarea; optional file upload to `storage/app/cv/`).
+- [ ] **Step 1:** `JobController@store/index/show` (Inertia). `CandidateController@create` must pass a **`jobs` Inertia prop** — `{id, title}[]` from `JobOpening::all()` — because the candidate form has a required role `<select>`. `CandidateController@store` saves `cv_text` from the textarea (optional file upload to `storage/app/cv/`) and **must validate `job_id` as `required|exists:job_openings,id`** — `candidates.job_id` is NOT NULL, so an unvalidated store fails with a raw constraint violation. On success, **redirect back with prop `candidate: {id, name}`** (the frontend's Analyze button renders off this). `POST /hr/candidates/{id}/analyze` redirects to `/hr/candidates/{id}`.
+- [ ] **Step 1b — add `JobOpening::rubric()`.** The §Contract server-merge calls `$job->rubric()` and **the method does not exist yet**. Return the array shape `['criteria' => [{name, weight, description}], 'scale' => string]`, derived from the job's `priorities`/`requirements`. Without it, Step 2 fatals.
 - [ ] **Step 2:** `CandidateController@analyze` with the hash-cache logic above, **including the server-merge block** from §Contract (`generated_at`, `rubric`, `fairness_note`, ids). `AnalysisController@show` returns `result`.
+- [ ] **Step 2b — WIRE `GitHubClient` INTO `CandidateContext`. Do not skip; this fails silently.** `CandidateContext::build(Candidate $c, array $github = [])` takes the GitHub payload as its second argument (Task 2 could not call `GitHubClient` because it did not exist yet). **If you call `build($candidate)` with one argument, everything type-checks, every test passes, and the analysis still returns — but every prompt says "could not be fetched", and all claims silently degrade to `weak`. It will look like a bad analyzer, not a wiring bug.** Required:
+
+```php
+$github = [
+    'profile' => $gitHubClient->profile($candidate->github_username),
+    'repos'   => $gitHubClient->topRepos($candidate->github_username),
+    'sources' => $gitHubClient->sourceFiles($candidate->github_username, $repo),
+];
+$context = CandidateContext::build($candidate, $github);
+```
+
+Keep the `= []` default — Task 11's seeder may legitimately want the GitHub-less path. Add a test asserting the context passed to the analyzer actually contains GitHub data when the client returns some; that is the only thing that catches this regression.
 - [ ] **Step 3:** Create `routes/hr.php` with pages `/hr/jobs`, `/hr/candidates/create`, `/hr/candidates/{c}`, `/hr/candidates/{c}/interview` (route names `hr.*`) + the JSON endpoints. Then add `require __DIR__.'/hr.php';` to `routes/web.php` **outside and below** the `Route::middleware(['auth','verified'])` group.
 - [ ] **Step 4 (auth guard check — demo blocker):** Run `php artisan route:list --path=hr`. Expected: **every** `hr.*` row shows NO `auth` or `verified` middleware. Then open `/hr/jobs` in a private/incognito window and confirm it renders instead of redirecting to login.
 - [ ] **Step 5:** Manual check: `php artisan tinker` → create job+candidate → hit analyze → confirm a row is written and a second call returns instantly (no API hit).
