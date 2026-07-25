@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Ai\Agents\CandidateAnalyzer;
+use App\Ai\Agents\CvMarkdownConverter;
 use App\Ai\Agents\InterviewGrader;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
@@ -67,6 +68,7 @@ class AppServiceProvider extends ServiceProvider
         }
 
         CandidateAnalyzer::fake();
+        CvMarkdownConverter::fake();
         Audio::fake();
         Transcription::fake();
 

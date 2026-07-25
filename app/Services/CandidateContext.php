@@ -38,18 +38,14 @@ class CandidateContext
     }
 
     /**
-     * Render the CV section, falling back to the uploaded file when nothing was pasted.
+     * Render the CV section from the markdown converted from the uploaded PDF.
      */
     protected static function curriculumVitae(Candidate $candidate): string
     {
-        $cvText = trim((string) $candidate->cv_text);
+        $cvMarkdown = trim((string) $candidate->cv_markdown);
 
-        if ($cvText !== '') {
-            return "CV:\n".$cvText;
-        }
-
-        if (filled($candidate->cv_path)) {
-            return 'CV: not pasted as text — see attachment '.$candidate->cv_path;
+        if ($cvMarkdown !== '') {
+            return "CV:\n".$cvMarkdown;
         }
 
         return 'CV: No CV was provided.';

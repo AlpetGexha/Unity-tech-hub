@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Ai\Agents\CandidateAnalyzer;
+use App\Ai\Agents\CvMarkdownConverter;
 use App\Models\Analysis;
 use App\Models\Candidate;
 use App\Models\JobOpening;
@@ -35,15 +36,17 @@ class CandidateController extends Controller
         $validated = $request->validate([
             'job_id' => ['required', 'exists:job_openings,id'],
             'name' => ['required', 'string', 'max:255'],
-            'cv_text' => ['required', 'string'],
             'github_username' => ['required', 'string', 'max:255'],
             'linkedin_text' => ['nullable', 'string'],
-            'cv_file' => ['nullable', 'file', 'max:5120'],
+            'cv_file' => ['required', 'file', 'mimes:pdf', 'max:10240'],
         ]);
+
+        $cvFile = $request->file('cv_file');
 
         $candidate = Candidate::create([
             ...Arr::except($validated, 'cv_file'),
-            'cv_path' => $request->file('cv_file')?->store('cv'),
+            'cv_path' => $cvFile->store('cv'),
+            'cv_markdown' => (new CvMarkdownConverter)->convert($cvFile),
         ]);
 
         return to_route('hr.candidates.create')->with('candidate', [
@@ -103,7 +106,7 @@ class CandidateController extends Controller
             $job->requirements,
             $job->priorities,
             $candidate->id,
-            $candidate->cv_text,
+            $candidate->cv_markdown,
             $candidate->github_username,
             (string) $candidate->linkedin_text,
         ]));

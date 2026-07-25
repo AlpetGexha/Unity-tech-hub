@@ -21,7 +21,7 @@ class CandidateFactory extends Factory
         return [
             'job_id' => JobOpening::factory(),
             'name' => fake()->name(),
-            'cv_text' => 'Backend engineer with '.fake()->numberBetween(2, 10).' years of experience in '.fake()->word().' and Laravel. '.fake()->paragraph(),
+            'cv_markdown' => "# CV\n\nBackend engineer with ".fake()->numberBetween(2, 10).' years of experience in '.fake()->word().' and Laravel. '.fake()->paragraph(),
             'cv_path' => null,
             'github_username' => fake()->userName(),
             'linkedin_text' => fake()->paragraph(),

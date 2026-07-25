@@ -1,5 +1,5 @@
 import { Form, Head, Link } from '@inertiajs/react';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import type { ChangeEvent } from 'react';
 import CandidateController from '@/actions/App/Http/Controllers/CandidateController';
 import JobController from '@/actions/App/Http/Controllers/JobController';
@@ -35,8 +35,9 @@ const pageHeader = (
         </h1>
 
         <p className="text-sm text-muted-foreground">
-            Paste the CV and, if they have one, their GitHub username. We check
-            what the CV claims against the code they have actually published.
+            Upload the CV as a PDF and, if they have one, their GitHub
+            username. We check what the CV claims against the code they have
+            actually published.
         </p>
     </header>
 );
@@ -48,38 +49,29 @@ export default function CandidateForm({
     candidate?: SavedCandidate;
     jobs?: SelectableJob[];
 }) {
-    const cvField = useRef<HTMLTextAreaElement>(null);
     const [fileError, setFileError] = useState<string>('');
 
     /**
-     * Pasting is the primary path. Reading a plain-text file only fills the
-     * same textarea, so nothing about the upload has to reach the server.
+     * The PDF is uploaded as-is; the server converts it to markdown. This only
+     * gives the HR user quick feedback before the request round-trips.
      */
-    const fillFromFile = async (
-        event: ChangeEvent<HTMLInputElement>,
-    ): Promise<void> => {
+    const validateFile = (event: ChangeEvent<HTMLInputElement>): void => {
         const file = event.target.files?.[0];
 
-        event.target.value = '';
-
         if (!file) {
+            setFileError('');
+
             return;
         }
 
-        try {
-            const text = await file.text();
+        if (file.type !== 'application/pdf') {
+            event.target.value = '';
+            setFileError('Please choose a PDF file.');
 
-            if (cvField.current) {
-                cvField.current.value = text;
-                cvField.current.focus();
-            }
-
-            setFileError('');
-        } catch {
-            setFileError(
-                'We could not read that file. Open it, copy the text, and paste it into the box above.',
-            );
+            return;
         }
+
+        setFileError('');
     };
 
     if (jobs.length === 0) {
@@ -205,49 +197,32 @@ export default function CandidateForm({
                             </div>
 
                             <div className="grid gap-2">
-                                <Label htmlFor="cv_text">CV text</Label>
+                                <Label htmlFor="cv_file">CV (PDF)</Label>
 
-                                <Textarea
-                                    id="cv_text"
-                                    name="cv_text"
-                                    ref={cvField}
+                                <Input
+                                    id="cv_file"
+                                    name="cv_file"
+                                    type="file"
                                     required
-                                    rows={14}
-                                    className="min-h-64 font-mono text-sm"
-                                    placeholder="Paste the whole CV here."
-                                    aria-describedby="cv_text-help"
+                                    accept="application/pdf"
+                                    onChange={validateFile}
+                                    aria-describedby="cv_file-help"
                                     aria-invalid={
-                                        errors.cv_text ? true : undefined
+                                        errors.cv_file || fileError
+                                            ? true
+                                            : undefined
                                     }
                                 />
 
                                 <p
-                                    id="cv_text-help"
+                                    id="cv_file-help"
                                     className="text-sm text-muted-foreground"
                                 >
-                                    Paste the whole CV. Layout and formatting do
-                                    not matter, only the words.
+                                    Upload the CV as a PDF. We convert it to
+                                    text automatically before scoring it.
                                 </p>
 
-                                <InputError message={errors.cv_text} />
-
-                                <div className="mt-1 flex flex-wrap items-center gap-3">
-                                    <Label
-                                        htmlFor="cv_file"
-                                        className="text-xs text-muted-foreground"
-                                    >
-                                        Or load a .txt or .md file
-                                    </Label>
-
-                                    <Input
-                                        id="cv_file"
-                                        type="file"
-                                        accept=".txt,.md,text/plain,text/markdown"
-                                        onChange={fillFromFile}
-                                        className="h-auto max-w-xs py-1.5 text-xs"
-                                    />
-                                </div>
-
+                                <InputError message={errors.cv_file} />
                                 <InputError message={fileError} />
                             </div>
 

@@ -112,7 +112,7 @@ class HrAnalyzeTest extends TestCase
 
         $this->post('/hr/candidates/'.$candidate->id.'/analyze');
 
-        $candidate->update(['cv_text' => 'A completely rewritten CV.']);
+        $candidate->update(['cv_markdown' => 'A completely rewritten CV.']);
 
         $this->post('/hr/candidates/'.$candidate->id.'/analyze');
 
@@ -180,7 +180,7 @@ class HrAnalyzeTest extends TestCase
                 'priorities' => 'Verifiable delivery over claims.',
             ]),
             'name' => 'Jamie Rivera',
-            'cv_text' => 'Led the payments rewrite at Acme.',
+            'cv_markdown' => 'Led the payments rewrite at Acme.',
             'github_username' => 'jamierivera',
             'linkedin_text' => 'Open to backend roles.',
         ]);

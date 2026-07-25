@@ -11,12 +11,12 @@ class CandidateContextTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_it_includes_the_pasted_cv_text(): void
+    public function test_it_includes_the_converted_cv_markdown(): void
     {
         $candidate = Candidate::factory()->create([
             'name' => 'Jamie Rivera',
-            'cv_text' => 'Led the payments rewrite at Acme.',
-            'cv_path' => null,
+            'cv_markdown' => 'Led the payments rewrite at Acme.',
+            'cv_path' => 'cv/jamie-rivera.pdf',
             'linkedin_text' => 'Open to backend roles.',
         ]);
 
@@ -27,30 +27,16 @@ class CandidateContextTest extends TestCase
         $this->assertStringContainsString('Open to backend roles.', $context);
     }
 
-    public function test_it_notes_the_attachment_when_the_cv_was_uploaded_instead_of_pasted(): void
-    {
-        $candidate = Candidate::factory()->create([
-            'cv_text' => '',
-            'cv_path' => 'cv/jamie-rivera.pdf',
-        ]);
-
-        $context = CandidateContext::build($candidate);
-
-        $this->assertStringContainsString('see attachment', $context);
-        $this->assertStringContainsString('cv/jamie-rivera.pdf', $context);
-    }
-
     public function test_it_reports_a_missing_cv_rather_than_leaving_the_section_blank(): void
     {
         $candidate = Candidate::factory()->create([
-            'cv_text' => '',
+            'cv_markdown' => '',
             'cv_path' => null,
         ]);
 
         $context = CandidateContext::build($candidate);
 
         $this->assertStringContainsString('No CV was provided.', $context);
-        $this->assertStringNotContainsString('see attachment', $context);
     }
 
     public function test_it_renders_the_github_profile_repos_and_source_snippets(): void

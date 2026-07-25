@@ -49,7 +49,7 @@ class DemoSeeder extends Seeder
             ->map(fn (array $data): Candidate => Candidate::create([
                 'job_id' => $job->id,
                 'name' => $data['name'],
-                'cv_text' => $data['cv_text'],
+                'cv_markdown' => $data['cv_markdown'],
                 'cv_path' => null,
                 'github_username' => $data['github_username'],
                 'linkedin_text' => $data['linkedin_text'],
@@ -67,7 +67,7 @@ class DemoSeeder extends Seeder
      * owned repository is real source code (not a curated list), so the analyzer
      * has genuine files to check the CV claims against.
      *
-     * @return array<int, array{name: string, github_username: string, cv_text: string, linkedin_text: string}>
+     * @return array<int, array{name: string, github_username: string, cv_markdown: string, linkedin_text: string}>
      */
     protected function candidateData(): array
     {
@@ -75,7 +75,9 @@ class DemoSeeder extends Seeder
             [
                 'name' => 'TJ Holowaychuk',
                 'github_username' => 'tj',
-                'cv_text' => <<<'TEXT'
+                'cv_markdown' => <<<'TEXT'
+                    # TJ Holowaychuk
+
                     Node.js and JavaScript tooling engineer. Creator of widely-adopted open-source
                     libraries, including a command-line argument-parsing library used across the
                     Node ecosystem, plus several Shell and Node CLI utilities. Deep experience
@@ -87,7 +89,9 @@ class DemoSeeder extends Seeder
             [
                 'name' => 'Jason Miller',
                 'github_username' => 'developit',
-                'cv_text' => <<<'TEXT'
+                'cv_markdown' => <<<'TEXT'
+                    # Jason Miller
+
                     Front-end and library engineer, creator of the Preact UI library and several
                     small, dependency-free JavaScript/TypeScript utilities, including a tiny event
                     emitter used by many other packages. Strong focus on bundle size, TypeScript
@@ -98,7 +102,9 @@ class DemoSeeder extends Seeder
             [
                 'name' => 'Jeremy Ashkenas',
                 'github_username' => 'jashkenas',
-                'cv_text' => <<<'TEXT'
+                'cv_markdown' => <<<'TEXT'
+                    # Jeremy Ashkenas
+
                     JavaScript language and framework engineer. Created foundational front-end
                     libraries adopted industry-wide, including an MVC framework and a widely used
                     utility-belt library, plus a language that compiles to JavaScript. Deep
