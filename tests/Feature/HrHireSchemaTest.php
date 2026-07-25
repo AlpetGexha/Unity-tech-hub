@@ -22,6 +22,15 @@ class HrHireSchemaTest extends TestCase
         ]));
     }
 
+    public function test_job_opening_factory_generates_one_requirement_and_priority_per_line(): void
+    {
+        $job = JobOpening::factory()->make();
+
+        $this->assertCount(5, explode("\n", $job->requirements));
+        $this->assertCount(3, explode("\n", $job->priorities));
+        $this->assertNotEmpty(trim($job->title));
+    }
+
     public function test_candidates_table_has_expected_columns(): void
     {
         $this->assertTrue(Schema::hasTable('candidates'));

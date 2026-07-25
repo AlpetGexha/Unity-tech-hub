@@ -19,8 +19,18 @@ class JobOpeningFactory extends Factory
     {
         return [
             'title' => fake()->jobTitle(),
-            'requirements' => implode("\n", fake()->sentences(5)),
-            'priorities' => implode("\n", fake()->sentences(3)),
+            'requirements' => $this->sentenceLines(5),
+            'priorities' => $this->sentenceLines(3),
         ];
+    }
+
+    /**
+     * Generate the given number of sentences, one per line.
+     */
+    protected function sentenceLines(int $count): string
+    {
+        return collect(range(1, $count))
+            ->map(fn (): string => fake()->sentence())
+            ->implode("\n");
     }
 }
