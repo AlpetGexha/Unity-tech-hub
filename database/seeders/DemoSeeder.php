@@ -31,27 +31,91 @@ class DemoSeeder extends Seeder
      */
     public function run(): void
     {
-        $job = JobOpening::create([
-            'title' => 'Laravel Developer (Junior / Mid-Level)',
-            'requirements' => $this->realJobDescription(),
-            'priorities' => $this->realJobPriorities(),
-        ]);
+        $requirements = $this->realJobDescription();
+        $priorities = $this->realJobPriorities();
+        $job = JobOpening::firstOrCreate(
+            [
+                'title' => 'Laravel Developer (Junior / Mid-Level)',
+                'requirements' => $requirements,
+            ],
+            ['priorities' => $priorities],
+        );
 
         $candidates = collect($this->candidateData())
-            ->map(fn (array $data): Candidate => Candidate::create([
-                'job_id' => $job->id,
-                'name' => $data['name'],
-                'cv_markdown' => $data['cv_markdown'],
-                'cv_path' => $data['cv_path'],
-                'github_username' => $data['github_username'],
-                'linkedin_text' => $data['linkedin_text'],
-            ]));
+            ->map(fn (array $data): Candidate => $this->firstOrCreateCandidate($job, $data));
 
         $candidates->each(function (Candidate $candidate): void {
             app(CandidateEvaluationService::class)->evaluate($candidate);
         });
 
+        $this->seedFakeEvaluations($job);
         $this->verifyCacheServesWithoutLiveCalls($candidates);
+    }
+
+    /**
+     * Add a candidate without changing a matching record from an earlier demo run.
+     *
+     * @param  array{name: string, cv_markdown: string, cv_path: string|null, github_username: string, linkedin_text: string}  $data
+     */
+    protected function firstOrCreateCandidate(JobOpening $job, array $data): Candidate
+    {
+        return Candidate::firstOrCreate(
+            ['job_id' => $job->id, 'name' => $data['name']],
+            [
+                'cv_markdown' => $data['cv_markdown'],
+                'cv_path' => $data['cv_path'],
+                'github_username' => $data['github_username'],
+                'linkedin_text' => $data['linkedin_text'],
+            ],
+        );
+    }
+
+    /**
+     * Seed fictional, already-evaluated candidates so the demo starts with a
+     * useful range of outcomes without making extra provider calls.
+     */
+    protected function seedFakeEvaluations(JobOpening $job): void
+    {
+        foreach ($this->fakeEvaluationData() as $data) {
+            $candidate = $this->firstOrCreateCandidate($job, [
+                'name' => $data['name'],
+                'cv_markdown' => $data['cv_markdown'],
+                'cv_path' => null,
+                'github_username' => '',
+                'linkedin_text' => 'Demo profile data. No external profile was checked.',
+            ]);
+
+            $candidate->update(['evaluation_status' => 'completed']);
+
+            Analysis::firstOrCreate(
+                ['input_hash' => hash('sha256', 'demo-evaluation|'.$job->id.'|'.$candidate->id)],
+                [
+                    'candidate_id' => $candidate->id,
+                    'job_id' => $job->id,
+                    'result' => $this->fakeAnalysisResult($job, $candidate, $data),
+                ],
+            );
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    protected function fakeAnalysisResult(JobOpening $job, Candidate $candidate, array $data): array
+    {
+        return [
+            'candidate_id' => (string) $candidate->id,
+            'job_id' => (string) $job->id,
+            'generated_at' => $data['generated_at'],
+            'cv_summary' => $data['cv_summary'],
+            'overall' => $data['overall'],
+            'skills' => $data['skills'],
+            'claims' => $data['claims'],
+            'interview_questions' => $data['interview_questions'],
+            'rubric' => $job->rubric(),
+            'fairness_note' => Analysis::FAIRNESS_NOTE,
+        ];
     }
 
     /**
@@ -103,6 +167,216 @@ class DemoSeeder extends Seeder
                       learning, reverse engineering, and multi-agent AI.
                     TEXT,
                 'linkedin_text' => 'No LinkedIn profile text was supplied in the demo CV.',
+            ],
+        ];
+    }
+
+    /**
+     * Fictional candidate profiles and hand-authored analysis results for the
+     * dashboard demo. These records intentionally do not represent real people.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    protected function fakeEvaluationData(): array
+    {
+        return [
+            [
+                'name' => 'Maya Patel',
+                'cv_markdown' => <<<'TEXT'
+                    # Maya Patel - Laravel Engineer
+
+                    Maya builds maintainable Laravel applications and has shipped
+                    internal workflow tools, REST APIs, and automated test suites.
+                    She enjoys turning ambiguous business processes into simple,
+                    observable software.
+                    TEXT,
+                'generated_at' => '2026-07-22T10:00:00Z',
+                'cv_summary' => 'Laravel engineer with strong backend experience across workflow tooling, REST APIs, and automated testing. Her examples show a practical approach to translating business processes into maintainable software.',
+                'overall' => [
+                    'fit_score' => 91,
+                    'recommendation' => 'strong_yes',
+                    'summary' => 'The supplied work demonstrates strong Laravel and relational-data fundamentals, backed by clear testing and delivery examples. The candidate appears ready to contribute with limited ramp-up time.',
+                ],
+                'skills' => [
+                    [
+                        'name' => 'PHP and Laravel',
+                        'score' => 94,
+                        'weight' => 40,
+                        'reasoning' => 'The CV describes production Laravel workflow tools and shows a clear preference for maintainable framework conventions.',
+                    ],
+                    [
+                        'name' => 'Testing and debugging',
+                        'score' => 90,
+                        'weight' => 30,
+                        'reasoning' => 'Automated test suites and observable workflows are directly described in the candidate material.',
+                    ],
+                    [
+                        'name' => 'Relational data and APIs',
+                        'score' => 88,
+                        'weight' => 30,
+                        'reasoning' => 'REST API and workflow-tool experience provides relevant evidence for the role requirements.',
+                    ],
+                ],
+                'claims' => [
+                    [
+                        'claim' => 'Built Laravel workflow tools.',
+                        'status' => 'verified',
+                        'evidence' => 'Maya builds maintainable Laravel applications and has shipped internal workflow tools, REST APIs, and automated test suites.',
+                        'source' => 'cv',
+                        'source_ref' => '',
+                    ],
+                    [
+                        'claim' => 'Uses automated testing in delivery.',
+                        'status' => 'verified',
+                        'evidence' => 'automated test suites',
+                        'source' => 'cv',
+                        'source_ref' => '',
+                    ],
+                ],
+                'interview_questions' => [
+                    [
+                        'question' => 'How would you structure a Laravel workflow so each business step remains observable and testable?',
+                        'targets_skill' => 'Testing and debugging',
+                        'grounded_in' => 'job_requirement',
+                        'ideal_answer_points' => [
+                            'Separates domain actions from controllers.',
+                            'Uses focused feature tests around workflow transitions.',
+                            'Adds logs or events that support diagnosis without exposing sensitive data.',
+                        ],
+                    ],
+                ],
+            ],
+            [
+                'name' => 'Noah Williams',
+                'cv_markdown' => <<<'TEXT'
+                    # Noah Williams - Full-Stack Developer
+
+                    Noah has delivered PHP applications for small teams, including
+                    Laravel controllers, MySQL-backed reports, and integrations with
+                    third-party services. His recent work has focused on improving
+                    existing codebases and documenting deployment steps.
+                    TEXT,
+                'generated_at' => '2026-07-21T14:30:00Z',
+                'cv_summary' => 'Full-stack developer with practical PHP and Laravel delivery experience, including MySQL reporting and third-party integrations. His profile suggests solid implementation ability with an opportunity to deepen testing and system-design practice.',
+                'overall' => [
+                    'fit_score' => 74,
+                    'recommendation' => 'yes',
+                    'summary' => 'The candidate shows relevant Laravel delivery experience and can likely contribute to the role. More evidence is needed around automated testing depth and designing larger backend boundaries.',
+                ],
+                'skills' => [
+                    [
+                        'name' => 'PHP and Laravel',
+                        'score' => 78,
+                        'weight' => 40,
+                        'reasoning' => 'Laravel controllers and PHP application work are directly described, although the depth of framework ownership is not fully established.',
+                    ],
+                    [
+                        'name' => 'Testing and debugging',
+                        'score' => 62,
+                        'weight' => 30,
+                        'reasoning' => 'The profile emphasizes improving existing code, but gives limited concrete evidence of automated tests.',
+                    ],
+                    [
+                        'name' => 'Relational data and APIs',
+                        'score' => 80,
+                        'weight' => 30,
+                        'reasoning' => 'MySQL-backed reports and third-party integrations are relevant, concrete examples for this role.',
+                    ],
+                ],
+                'claims' => [
+                    [
+                        'claim' => 'Worked with Laravel and MySQL.',
+                        'status' => 'verified',
+                        'evidence' => 'including Laravel controllers, MySQL-backed reports, and integrations with third-party services.',
+                        'source' => 'cv',
+                        'source_ref' => '',
+                    ],
+                    [
+                        'claim' => 'Has strong automated testing experience.',
+                        'status' => 'unsupported',
+                        'evidence' => '',
+                        'source' => 'cv',
+                        'source_ref' => '',
+                    ],
+                ],
+                'interview_questions' => [
+                    [
+                        'question' => 'What would you test first when extending a Laravel report backed by several relational queries?',
+                        'targets_skill' => 'Testing and debugging',
+                        'grounded_in' => 'job_requirement',
+                        'ideal_answer_points' => [
+                            'Covers expected business outcomes with feature tests.',
+                            'Tests representative relationships and empty results.',
+                            'Uses query inspection or profiling when performance matters.',
+                        ],
+                    ],
+                ],
+            ],
+            [
+                'name' => 'Elena Rossi',
+                'cv_markdown' => <<<'TEXT'
+                    # Elena Rossi - Junior PHP Developer
+
+                    Elena has completed several PHP learning projects and recently
+                    contributed small fixes to a Laravel application. She is building
+                    confidence with relational modelling, API design, and test-driven
+                    development through guided practice.
+                    TEXT,
+                'generated_at' => '2026-07-20T09:15:00Z',
+                'cv_summary' => 'Junior PHP developer with learning-project experience and early exposure to Laravel maintenance work. The profile shows motivation and growth potential, while production depth and independent delivery remain to be validated.',
+                'overall' => [
+                    'fit_score' => 48,
+                    'recommendation' => 'maybe',
+                    'summary' => 'The candidate has a promising foundation and willingness to learn, but the available evidence is light for a role requiring dependable Laravel delivery. A practical interview or take-home exercise would reduce the remaining uncertainty.',
+                ],
+                'skills' => [
+                    [
+                        'name' => 'PHP and Laravel',
+                        'score' => 55,
+                        'weight' => 40,
+                        'reasoning' => 'PHP learning projects and small Laravel fixes show early exposure, but not yet sustained ownership of production features.',
+                    ],
+                    [
+                        'name' => 'Testing and debugging',
+                        'score' => 42,
+                        'weight' => 30,
+                        'reasoning' => 'Test-driven development is described as guided practice rather than independently demonstrated delivery.',
+                    ],
+                    [
+                        'name' => 'Relational data and APIs',
+                        'score' => 47,
+                        'weight' => 30,
+                        'reasoning' => 'Relational modelling and API design are stated learning areas without a concrete shipped example.',
+                    ],
+                ],
+                'claims' => [
+                    [
+                        'claim' => 'Contributed fixes to a Laravel application.',
+                        'status' => 'weak',
+                        'evidence' => 'recently contributed small fixes to a Laravel application',
+                        'source' => 'cv',
+                        'source_ref' => '',
+                    ],
+                    [
+                        'claim' => 'Has shipped production API work.',
+                        'status' => 'unsupported',
+                        'evidence' => '',
+                        'source' => 'cv',
+                        'source_ref' => '',
+                    ],
+                ],
+                'interview_questions' => [
+                    [
+                        'question' => 'Walk through how you would design and test a small Laravel endpoint from a written business requirement.',
+                        'targets_skill' => 'Relational data and APIs',
+                        'grounded_in' => 'job_requirement',
+                        'ideal_answer_points' => [
+                            'Clarifies inputs, authorization, and expected responses.',
+                            'Models the data relationship before writing the query.',
+                            'Adds a feature test for success and validation failure.',
+                        ],
+                    ],
+                ],
             ],
         ];
     }

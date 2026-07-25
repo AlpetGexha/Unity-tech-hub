@@ -5,6 +5,7 @@ import { ClaimList } from '@/components/claim-list';
 import { DecisionReport } from '@/components/decision-report';
 import { SkillChart } from '@/components/skill-chart';
 import { Button } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/spinner';
 import type { Analysis, Recommendation } from '@/types/analysis';
 
 const recommendationLabels: Record<Recommendation, string> = {
@@ -71,6 +72,14 @@ export default function CandidateAnalysis({
      * a page that renders nothing.
      */
     if (!analysis?.overall) {
+        const isQueued = evaluationStatus === 'pending';
+        const waitingTitle = isQueued
+            ? 'Waiting for the evaluation queue'
+            : 'AI evaluation in progress';
+        const waitingMessage = isQueued
+            ? 'Your candidate was saved successfully and is waiting for an available queue worker.'
+            : 'The AI is reviewing the CV against the role and public GitHub evidence.';
+
         return (
             <>
                 <Head title="Candidate analysis" />
@@ -82,28 +91,84 @@ export default function CandidateAnalysis({
                         </h1>
                     </header>
 
-                    <div className="space-y-3 rounded-xl border bg-card p-6 text-card-foreground">
-                        <h2 className="font-medium">
-                            {evaluationStatus === 'failed'
-                                ? 'Evaluation failed'
-                                : isEvaluating
-                                  ? 'Evaluation in progress'
-                                  : 'No analysis yet'}
-                        </h2>
+                    <div
+                        aria-live="polite"
+                        className="space-y-6 rounded-xl border bg-card p-6 text-card-foreground md:p-8"
+                    >
+                        {isEvaluating && (
+                            <div className="flex flex-col items-center gap-5 text-center">
+                                <div className="relative flex size-20 items-center justify-center rounded-full bg-primary/10">
+                                    <div className="absolute inset-0 animate-ping rounded-full bg-primary/10" />
+                                    <Spinner className="relative size-9 text-primary" />
+                                </div>
 
-                        <p className="max-w-prose text-sm text-muted-foreground">
-                            {evaluationStatus === 'failed'
-                                ? 'The AI evaluation could not be completed. Please retry the evaluation from the candidate workflow.'
-                                : isEvaluating
-                                  ? 'The candidate was saved. The AI is checking the CV against the role and public GitHub now. This page will update automatically when the result is ready.'
-                                  : 'Nothing has been analysed for this candidate yet. The fit score, skill breakdown and every CV claim checked against real code will appear here.'}
-                        </p>
+                                <div className="space-y-2">
+                                    <h2 className="text-lg font-semibold">
+                                        {waitingTitle}
+                                    </h2>
 
-                        <Button asChild>
-                            <Link href={CandidateController.create()}>
-                                Go to candidates
-                            </Link>
-                        </Button>
+                                    <p className="mx-auto max-w-xl text-sm leading-relaxed text-muted-foreground">
+                                        {waitingMessage} This page checks for
+                                        the result automatically and will show
+                                        the full evaluation as soon as the job
+                                        finishes.
+                                    </p>
+                                </div>
+
+                                <div className="w-full max-w-xl space-y-3">
+                                    <div className="h-2 overflow-hidden rounded-full bg-muted">
+                                        <div className="h-full w-1/3 animate-pulse rounded-full bg-primary" />
+                                    </div>
+
+                                    <div className="flex flex-wrap justify-center gap-x-5 gap-y-2 text-xs text-muted-foreground">
+                                        <span className="font-medium text-foreground">
+                                            Candidate saved
+                                        </span>
+                                        <span>
+                                            {isQueued
+                                                ? 'Queued for AI evaluation'
+                                                : 'AI is checking evidence'}
+                                        </span>
+                                        <span>
+                                            Result appears automatically
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {evaluationStatus === 'failed' && (
+                            <h2 className="font-medium">Evaluation failed</h2>
+                        )}
+
+                        {!isEvaluating && evaluationStatus !== 'failed' && (
+                            <h2 className="font-medium">No analysis yet</h2>
+                        )}
+
+                        {evaluationStatus === 'failed' && (
+                            <p className="max-w-prose text-sm text-muted-foreground">
+                                The AI evaluation could not be completed. Please
+                                retry the evaluation from the candidate
+                                workflow.
+                            </p>
+                        )}
+
+                        {!isEvaluating && evaluationStatus !== 'failed' && (
+                            <p className="max-w-prose text-sm text-muted-foreground">
+                                Nothing has been analysed for this candidate
+                                yet. The fit score, skill breakdown and every CV
+                                claim checked against real code will appear
+                                here.
+                            </p>
+                        )}
+
+                        {!isEvaluating && (
+                            <Button asChild>
+                                <Link href={CandidateController.create()}>
+                                    Go to candidates
+                                </Link>
+                            </Button>
+                        )}
                     </div>
                 </div>
             </>

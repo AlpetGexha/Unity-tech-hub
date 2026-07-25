@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Ai\Agents\CandidateAnalyzer;
+use App\Models\Analysis;
 use App\Models\Candidate;
 use App\Models\JobOpening;
 use Database\Seeders\DemoSeeder;
@@ -29,11 +30,24 @@ class DemoSeederTest extends TestCase
             'PRITECH is looking for a Laravel Developer',
             $job->requirements,
         );
-        $this->assertSame(1, Candidate::count());
+        $this->assertSame(4, Candidate::count());
         $this->assertDatabaseHas('candidates', [
             'job_id' => $job->id,
             'name' => 'Alpet Gexha',
         ]);
+        $this->assertDatabaseHas('candidates', [
+            'job_id' => $job->id,
+            'name' => 'Maya Patel',
+        ]);
+        $this->assertDatabaseHas('candidates', [
+            'job_id' => $job->id,
+            'name' => 'Noah Williams',
+        ]);
+        $this->assertDatabaseHas('candidates', [
+            'job_id' => $job->id,
+            'name' => 'Elena Rossi',
+        ]);
+        $this->assertSame(4, Analysis::count());
 
         $this->assertStringContainsString(
             $job->requirements,
@@ -42,5 +56,22 @@ class DemoSeederTest extends TestCase
         CandidateAnalyzer::assertPrompted(
             fn (AgentPrompt $prompt): bool => $prompt->contains('Alpet Gexha')
         );
+    }
+
+    public function test_demo_seeding_is_additive_and_does_not_duplicate_demo_records(): void
+    {
+        CandidateAnalyzer::fake();
+        Http::fake();
+
+        $this->seed(DemoSeeder::class);
+        $existingCandidate = Candidate::factory()->create(['name' => 'Existing Candidate']);
+
+        $this->seed(DemoSeeder::class);
+
+        $this->assertModelExists($existingCandidate);
+        $this->assertSame(5, Candidate::count());
+        $this->assertSame(2, JobOpening::count());
+        $this->assertSame(4, Analysis::count());
+        $this->assertSame(1, Candidate::where('name', 'Maya Patel')->count());
     }
 }
