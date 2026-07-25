@@ -75,6 +75,25 @@ class HrCandidatesTest extends TestCase
             );
     }
 
+    public function test_saving_a_candidate_does_not_require_github_or_linkedin_details(): void
+    {
+        Bus::fake();
+        Storage::fake('local');
+
+        $job = JobOpening::factory()->create();
+
+        $this->post('/hr/candidates', [
+            'job_id' => $job->id,
+            'name' => 'Jamie Rivera',
+            'cv_file' => $this->fakePdf(),
+        ])->assertRedirectToRoute('hr.candidates.show', Candidate::firstOrFail());
+
+        $candidate = Candidate::firstOrFail();
+
+        $this->assertNull($candidate->github_username);
+        $this->assertNull($candidate->linkedin_text);
+    }
+
     public function test_the_saved_candidate_prop_is_gone_on_the_next_visit(): void
     {
         Storage::fake('local');

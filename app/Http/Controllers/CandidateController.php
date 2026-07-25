@@ -86,7 +86,7 @@ class CandidateController extends Controller
         $validated = $request->validate([
             'job_id' => ['required', 'exists:job_openings,id'],
             'name' => ['required', 'string', 'max:255'],
-            'github_username' => ['required', 'string', 'max:255'],
+            'github_username' => ['nullable', 'string', 'max:255'],
             'linkedin_text' => ['nullable', 'string'],
             'cv_file' => ['required', 'file', 'mimes:pdf', 'max:10240'],
             'cv_preview_token' => ['nullable', 'string', 'size:64'],
@@ -158,7 +158,7 @@ class CandidateController extends Controller
 
         $file = $request->file('csv_file');
         $headers = $this->csvHeaders($file->getRealPath());
-        $requiredHeaders = ['name', 'cv_markdown', 'github_username'];
+        $requiredHeaders = ['name', 'cv_markdown'];
 
         if (array_diff($requiredHeaders, $headers) !== []) {
             throw ValidationException::withMessages([

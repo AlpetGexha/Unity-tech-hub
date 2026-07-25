@@ -18,7 +18,7 @@ use Illuminate\Support\Carbon;
  * @property string $name
  * @property string|null $cv_markdown
  * @property string|null $cv_path
- * @property string $github_username
+ * @property string|null $github_username
  * @property string|null $linkedin_text
  * @property CandidateInterviewStatus|null $interview_status
  * @property string|null $evaluation_status

@@ -64,6 +64,24 @@ class HrCandidateImportTest extends TestCase
         Bus::assertNothingBatched();
     }
 
+    public function test_csv_upload_allows_github_and_linkedin_headers_to_be_omitted(): void
+    {
+        Bus::fake();
+        Storage::fake('local');
+
+        $job = JobOpening::factory()->create();
+
+        $this->post('/hr/candidate-imports', [
+            'job_id' => $job->id,
+            'csv_file' => UploadedFile::fake()->createWithContent(
+                'candidates.csv',
+                "name,cv_markdown\nJamie Rivera,Backend engineer\n"
+            ),
+        ])->assertRedirect();
+
+        Bus::assertBatched(fn ($batch): bool => $batch->hasJobs([ImportCandidatesFromCsv::class]));
+    }
+
     public function test_import_job_creates_valid_candidates_and_queues_individual_evaluations(): void
     {
         Storage::fake('local');
@@ -79,10 +97,10 @@ class HrCandidateImportTest extends TestCase
         ]);
 
         Storage::disk('local')->put($import->file_path, implode("\n", [
-            'name,cv_markdown,github_username,linkedin_text',
-            'Jamie Rivera,Backend engineer,jamierivera,Open to roles.',
-            'Missing GitHub,Backend engineer,,',
-            'Taylor Stone,Platform engineer,taylorstone,',
+            'name,cv_markdown',
+            'Jamie Rivera,Backend engineer',
+            'Missing Profiles,Backend engineer',
+            'Taylor Stone,Platform engineer',
         ]));
 
         $jobInstance = new ImportCandidatesFromCsv($import->id);
@@ -90,18 +108,19 @@ class HrCandidateImportTest extends TestCase
 
         $jobInstance->handle();
 
-        $this->assertDatabaseCount('candidates', 2);
+        $this->assertDatabaseCount('candidates', 3);
         $this->assertDatabaseHas('candidates', [
             'name' => 'Jamie Rivera',
             'job_id' => $job->id,
             'cv_markdown' => 'Backend engineer',
         ]);
-        $this->assertSame(2, count(array_filter($batch->added, fn (object $job): bool => $job instanceof EvaluateCandidate)));
+        $this->assertSame(3, count(array_filter($batch->added, fn (object $job): bool => $job instanceof EvaluateCandidate)));
 
         $import->refresh();
         $this->assertSame(3, $import->total_rows);
-        $this->assertSame(2, $import->valid_rows);
-        $this->assertCount(1, $import->failed_rows);
+        $this->assertSame(3, $import->valid_rows);
+        $this->assertSame(0, $import->invalid_rows);
+        $this->assertCount(0, $import->failed_rows);
     }
 
     public function test_import_status_page_exposes_batch_progress(): void

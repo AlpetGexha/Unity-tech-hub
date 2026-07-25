@@ -146,6 +146,23 @@ export default function CandidateAnalysis({
                 </header>
 
                 <section
+                    aria-labelledby="cv-summary-heading"
+                    className="space-y-3 rounded-xl border bg-card p-5 text-card-foreground md:p-6"
+                >
+                    <h2
+                        id="cv-summary-heading"
+                        className="text-lg font-semibold tracking-tight"
+                    >
+                        CV summary
+                    </h2>
+
+                    <p className="leading-relaxed text-pretty text-muted-foreground">
+                        {analysis.cv_summary ??
+                            'No CV summary was saved for this analysis.'}
+                    </p>
+                </section>
+
+                <section
                     aria-labelledby="verdict-heading"
                     className="rounded-xl border bg-card p-5 text-card-foreground md:p-6"
                 >

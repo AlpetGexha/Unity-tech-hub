@@ -248,11 +248,11 @@ export default function CandidateForm({
                                 >
                                     Required headers:{' '}
                                     <code className="text-xs">
-                                        name, cv_markdown, github_username
+                                        name, cv_markdown
                                     </code>
                                     . Optional:{' '}
                                     <code className="text-xs">
-                                        linkedin_text
+                                        github_username, linkedin_text
                                     </code>
                                     .
                                 </p>
@@ -390,13 +390,12 @@ export default function CandidateForm({
 
                             <div className="grid gap-2">
                                 <Label htmlFor="github_username">
-                                    GitHub username
+                                    GitHub username (optional)
                                 </Label>
 
                                 <Input
                                     id="github_username"
                                     name="github_username"
-                                    required
                                     autoComplete="off"
                                     spellCheck={false}
                                     placeholder="mkelsey"
@@ -420,7 +419,8 @@ export default function CandidateForm({
                                     className="text-sm text-muted-foreground"
                                 >
                                     Public repositories only. This is what the
-                                    CV gets checked against, so we need it.
+                                    CV gets checked against when it is
+                                    available.
                                 </p>
 
                                 <InputError message={errors.github_username} />
@@ -428,7 +428,7 @@ export default function CandidateForm({
 
                             <div className="grid gap-2">
                                 <Label htmlFor="linkedin_text">
-                                    LinkedIn profile text
+                                    LinkedIn profile text (optional)
                                 </Label>
 
                                 <Textarea

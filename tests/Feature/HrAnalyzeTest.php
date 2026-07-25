@@ -53,6 +53,7 @@ class HrAnalyzeTest extends TestCase
         $result = Analysis::firstOrFail()->result;
 
         $this->assertSame(78, $result['overall']['fit_score']);
+        $this->assertSame('A full-stack Laravel developer with three years of experience.', $result['cv_summary']);
         $this->assertSame('Laravel', $result['skills'][0]['name']);
         $this->assertNotEmpty($result['claims']);
         $this->assertNotEmpty($result['interview_questions']);
@@ -198,6 +199,7 @@ class HrAnalyzeTest extends TestCase
     protected function modelResult(): array
     {
         return [
+            'cv_summary' => 'A full-stack Laravel developer with three years of experience.',
             'overall' => ['fit_score' => 78, 'recommendation' => 'yes', 'summary' => 'Strong evidence.'],
             'skills' => [['name' => 'Laravel', 'score' => 84, 'weight' => 40, 'reasoning' => 'Production repos.']],
             'claims' => [[

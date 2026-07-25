@@ -65,7 +65,7 @@ class ImportCandidatesFromCsv implements ShouldQueue
                 'job_id' => $import->job_id,
                 'name' => trim((string) $data['name']),
                 'cv_markdown' => trim((string) ($data['cv_markdown'] ?? $data['cv_text'] ?? '')),
-                'github_username' => trim((string) $data['github_username']),
+                'github_username' => trim((string) ($data['github_username'] ?? '')) ?: null,
                 'linkedin_text' => trim((string) ($data['linkedin_text'] ?? '')) ?: null,
                 'evaluation_status' => 'pending',
             ]);
@@ -115,7 +115,7 @@ class ImportCandidatesFromCsv implements ShouldQueue
     {
         $errors = [];
 
-        foreach (['name' => 'name', 'cv_markdown' => 'CV text', 'github_username' => 'GitHub username'] as $key => $label) {
+        foreach (['name' => 'name', 'cv_markdown' => 'CV text'] as $key => $label) {
             if (trim((string) ($data[$key] ?? '')) === '') {
                 $errors[] = $label.' is required.';
             }

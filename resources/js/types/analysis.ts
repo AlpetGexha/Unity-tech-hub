@@ -1,7 +1,7 @@
 /**
  * Mirrors the `analyses.result` JSON contract produced by the backend.
  *
- * `overall`, `skills`, `claims` and `interview_questions` come from the model;
+ * `cv_summary`, `overall`, `skills`, `claims` and `interview_questions` come from the model;
  * every other key is merged in server-side after the call.
  */
 
@@ -62,6 +62,7 @@ export type Analysis = {
     job_id: string;
     /** ISO-8601 */
     generated_at: string;
+    cv_summary: string;
     overall: AnalysisOverall;
     skills: AnalysisSkill[];
     claims: AnalysisClaim[];

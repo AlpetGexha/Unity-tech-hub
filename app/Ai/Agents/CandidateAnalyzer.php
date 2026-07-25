@@ -19,8 +19,8 @@ use Stringable;
 /**
  * Scores one candidate against one job opening in a single structured call.
  *
- * The agent generates judgement fields only — `overall`, `skills`, `claims` and
- * `interview_questions`. Metadata (`candidate_id`, `job_id`, `generated_at`,
+ * The agent generates candidate context and judgement fields — `cv_summary`,
+ * `overall`, `skills`, `claims` and `interview_questions`. Metadata (`candidate_id`, `job_id`, `generated_at`,
  * `rubric`, `fairness_note`) is merged in PHP after the call so the wording and
  * timestamps are ours, never the model's.
  */
@@ -81,7 +81,7 @@ class CandidateAnalyzer implements Agent, HasStructuredOutput
     public function __construct(public JobOpening $job) {}
 
     /**
-     * Analyse one candidate and return the four model-generated keys of the contract.
+     * Analyse one candidate and return the model-generated keys of the contract.
      *
      * The SDK's `prompt()` is typed to the base `AgentResponse`, so this narrows it once
      * here rather than at every call site. Reaching the throw would mean the provider
@@ -114,6 +114,9 @@ class CandidateAnalyzer implements Agent, HasStructuredOutput
     public function schema(JsonSchema $schema): array
     {
         return [
+            'cv_summary' => $schema->string()
+                ->description('A concise, factual two to four sentence summary of the candidate CV, covering background, experience, and notable projects. Do not include a hiring recommendation.')->required(),
+
             'overall' => $schema->object(fn (JsonSchema $schema): array => [
                 'fit_score' => $schema->integer()->min(0)->max(100)
                     ->description('Overall fit for this job, 0-100.')->required(),

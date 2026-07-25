@@ -28,6 +28,7 @@ class CandidateAnalyzerTest extends TestCase
         $response = (new CandidateAnalyzer($job))->prompt('ctx');
 
         $this->assertIsInt($response['overall']['fit_score']);
+        $this->assertIsString($response['cv_summary']);
         $this->assertContains($response['overall']['recommendation'], ['strong_yes', 'yes', 'maybe', 'no']);
         $this->assertIsString($response['overall']['summary']);
 
@@ -64,7 +65,7 @@ class CandidateAnalyzerTest extends TestCase
         $result = (new CandidateAnalyzer($job))->analyse('ctx');
 
         $this->assertSame(
-            ['overall', 'skills', 'claims', 'interview_questions'],
+            ['cv_summary', 'overall', 'skills', 'claims', 'interview_questions'],
             array_keys($result),
         );
     }
@@ -76,7 +77,7 @@ class CandidateAnalyzerTest extends TestCase
         $schema = (new CandidateAnalyzer($job))->schema(new JsonSchemaTypeFactory);
 
         $this->assertSame(
-            ['overall', 'skills', 'claims', 'interview_questions'],
+            ['cv_summary', 'overall', 'skills', 'claims', 'interview_questions'],
             array_keys($schema),
         );
     }
@@ -89,7 +90,7 @@ class CandidateAnalyzerTest extends TestCase
 
         $serialized = (new JsonSchemaTypeFactory)->object($schema)->toArray();
 
-        $this->assertSame(['overall', 'skills', 'claims', 'interview_questions'], $serialized['required']);
+        $this->assertSame(['cv_summary', 'overall', 'skills', 'claims', 'interview_questions'], $serialized['required']);
         $this->assertSame(
             ['fit_score', 'recommendation', 'summary'],
             $serialized['properties']['overall']['required'],
