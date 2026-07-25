@@ -168,7 +168,7 @@ $result += [
 **Interfaces:**
 - Produces: `Analysis` model with `$casts = ['result' => 'array']`; `analyses` table columns `candidate_id`, `job_id`, `input_hash` (unique), `result` (json), `timestamps`.
 
-- [ ] **Step 1:** Write migration. `job_openings`(id, title, requirements text, priorities text, timestamps). `candidates`(id, job_id, name, cv_path, github_username, linkedin_text, timestamps). `analyses`(id, candidate_id, job_id, input_hash unique, result json, timestamps). `interviews`(id, candidate_id, result json, timestamps).
+- [ ] **Step 1:** Write migration. `job_openings`(id, title, requirements text, priorities text, timestamps). `candidates`(id, job_id, name, **`cv_text` (text, the PRIMARY CV input — pasted)**, `cv_path` (string, **nullable** — optional file upload only), github_username, linkedin_text nullable, timestamps). `analyses`(id, candidate_id, job_id, input_hash unique, result json, timestamps). `interviews`(id, candidate_id, result json, timestamps).
 - [ ] **Step 2:** Run `php artisan migrate`. Expected: 4 tables created in SQLite.
 - [ ] **Step 3:** Write the 4 models with `$fillable` and `Analysis::$casts['result'] => 'array'`. `JobOpening` needs `protected $table = 'job_openings'` only if you don't name it conventionally — `JobOpening` already maps to `job_openings`, so no override is needed. Also create `database/factories/JobOpeningFactory.php` and `database/factories/CandidateFactory.php` — **Task 2's test calls `JobOpening::factory()` and will fail without it.**
 - [ ] **Step 4:** Write `mocks/analysis.json` — one full example matching the §Contract (3 skills, 4 claims mixed statuses, 3 questions).
