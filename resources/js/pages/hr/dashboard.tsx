@@ -1,5 +1,6 @@
 import { Head } from '@inertiajs/react';
 import { ClaimList } from '@/components/claim-list';
+import { DecisionReport } from '@/components/decision-report';
 import { SkillChart } from '@/components/skill-chart';
 import analysisMock from '@/mocks/analysis.json';
 import type { Analysis, Recommendation } from '@/types/analysis';
@@ -178,9 +179,7 @@ export default function CandidateAnalysis({
                     </div>
                 </section>
 
-                <p className="border-t pt-4 text-xs text-muted-foreground">
-                    {analysis.fairness_note}
-                </p>
+                <DecisionReport analysis={analysis} />
             </div>
         </>
     );

@@ -31,6 +31,28 @@ const palette = {
     },
 } as const;
 
+/**
+ * Chart.js renders an array label as one line per entry. Without this a long
+ * criterion name eats the plot area on a narrow screen.
+ */
+const wrapLabel = (label: string, maxChars = 20): string[] => {
+    const lines: string[] = [];
+
+    label.split(' ').forEach((word) => {
+        const current = lines[lines.length - 1];
+
+        if (current === undefined || `${current} ${word}`.length > maxChars) {
+            lines.push(word);
+
+            return;
+        }
+
+        lines[lines.length - 1] = `${current} ${word}`;
+    });
+
+    return lines;
+};
+
 const prefersReducedMotion = (): boolean => {
     if (typeof window === 'undefined') {
         return false;
@@ -55,7 +77,7 @@ export function SkillChart({
 
     const data = useMemo<ChartData<'bar'>>(
         () => ({
-            labels: skills.map((skill) => skill.name),
+            labels: skills.map((skill) => wrapLabel(skill.name)),
             datasets: [
                 {
                     label: 'Score',
@@ -125,11 +147,17 @@ export function SkillChart({
         );
     }
 
+    const rowHeight = Math.max(
+        52,
+        Math.max(...skills.map((skill) => wrapLabel(skill.name).length)) * 16 +
+            28,
+    );
+
     return (
-        <div className={className}>
+        <div className={cn('min-w-0', className)}>
             <div
                 aria-hidden="true"
-                style={{ height: skills.length * 52 + 32 }}
+                style={{ height: skills.length * rowHeight + 32 }}
                 className="w-full"
             >
                 <Bar data={data} options={options} />

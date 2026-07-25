@@ -81,9 +81,9 @@ function ClaimRow({ claim }: { claim: AnalysisClaim }) {
 
             <div className="space-y-3 py-4 pr-4 pl-5">
                 <div className="flex flex-wrap-reverse items-start justify-between gap-x-4 gap-y-2">
-                    <h3 className="min-w-0 flex-1 basis-64 leading-snug font-medium">
+                    <p className="min-w-0 flex-1 basis-64 leading-snug font-medium">
                         {claim.claim}
-                    </h3>
+                    </p>
 
                     <StatusBadge status={claim.status} />
                 </div>
@@ -97,7 +97,7 @@ function ClaimRow({ claim }: { claim: AnalysisClaim }) {
                         <span>{sourceLabels[claim.source]}</span>
 
                         {claim.source_ref !== '' && (
-                            <cite className="max-w-full truncate rounded bg-muted px-1.5 py-0.5 font-mono text-[0.7rem] break-all text-foreground not-italic">
+                            <cite className="rounded bg-muted px-1.5 py-0.5 font-mono text-[0.7rem] break-all text-foreground not-italic">
                                 {claim.source_ref}
                             </cite>
                         )}
