@@ -1,12 +1,12 @@
 <?php
 
+use App\Http\Controllers\DashboardController;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'welcome')->name('home');
 
-Route::middleware(['auth', 'verified'])->group(function () {
-    Route::inertia('dashboard', 'dashboard')->name('dashboard');
-});
+// HrHire has no login, so the main dashboard must stay outside any auth group.
+Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
 require __DIR__.'/settings.php';
 

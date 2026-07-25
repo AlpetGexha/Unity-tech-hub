@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Carbon;
 
 /**
@@ -49,5 +50,13 @@ class Candidate extends Model
     public function interviews(): HasMany
     {
         return $this->hasMany(Interview::class);
+    }
+
+    /**
+     * @return HasOne<Analysis, $this>
+     */
+    public function latestAnalysis(): HasOne
+    {
+        return $this->hasOne(Analysis::class)->latestOfMany('id');
     }
 }
