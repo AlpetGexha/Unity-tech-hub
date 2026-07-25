@@ -12,6 +12,8 @@ use Laravel\Ai\Contracts\Agent;
 use Laravel\Ai\Contracts\HasStructuredOutput;
 use Laravel\Ai\Enums\Lab;
 use Laravel\Ai\Promptable;
+use Laravel\Ai\Responses\StructuredAgentResponse;
+use RuntimeException;
 use Stringable;
 
 /**
@@ -77,6 +79,26 @@ class CandidateAnalyzer implements Agent, HasStructuredOutput
     public const DEFAULT_PRIORITIES = 'No priorities were provided. Weight demonstrated, verifiable delivery above self-reported experience.';
 
     public function __construct(public JobOpening $job) {}
+
+    /**
+     * Analyse one candidate and return the four model-generated keys of the contract.
+     *
+     * The SDK's `prompt()` is typed to the base `AgentResponse`, so this narrows it once
+     * here rather than at every call site. Reaching the throw would mean the provider
+     * ignored a strict schema, which callers should hear about rather than silently store.
+     *
+     * @return array<string, mixed>
+     */
+    public function analyse(string $context): array
+    {
+        $response = $this->prompt($context);
+
+        if (! $response instanceof StructuredAgentResponse) {
+            throw new RuntimeException('The analyzer returned an unstructured response.');
+        }
+
+        return $response->toArray();
+    }
 
     /**
      * Get the instructions that the agent should follow.

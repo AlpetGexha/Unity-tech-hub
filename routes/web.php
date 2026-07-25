@@ -9,3 +9,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 
 require __DIR__.'/settings.php';
+
+// HrHire has no login. This must stay outside the auth group above.
+require __DIR__.'/hr.php';

@@ -55,6 +55,20 @@ class CandidateAnalyzerTest extends TestCase
         CandidateAnalyzer::assertPrompted(fn (AgentPrompt $prompt): bool => $prompt->contains('ctx'));
     }
 
+    public function test_analyse_hands_back_the_structured_array_the_contract_is_built_from(): void
+    {
+        CandidateAnalyzer::fake();
+
+        $job = JobOpening::factory()->create();
+
+        $result = (new CandidateAnalyzer($job))->analyse('ctx');
+
+        $this->assertSame(
+            ['overall', 'skills', 'claims', 'interview_questions'],
+            array_keys($result),
+        );
+    }
+
     public function test_schema_declares_only_the_model_generated_keys(): void
     {
         $job = JobOpening::factory()->create();
