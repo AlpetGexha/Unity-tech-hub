@@ -1,0 +1,101 @@
+{
+  "candidate_id": "1",
+  "job_id": "1",
+  "generated_at": "2026-07-25T09:14:32+00:00",
+  "overall": {
+    "fit_score": 78,
+    "recommendation": "yes",
+    "summary": "Solid backend engineer with real production experience in Laravel and queue-based systems. GitHub activity backs up most CV claims, though the leadership claim is thin and testing depth is inconsistent across repos."
+  },
+  "skills": [
+    {
+      "name": "Laravel / PHP backend development",
+      "score": 84,
+      "weight": 40,
+      "reasoning": "Three of the candidate's four most-starred repos are Laravel applications using service classes, form requests, and queued jobs consistent with production-grade practice, not tutorial code."
+    },
+    {
+      "name": "API design & integration",
+      "score": 72,
+      "weight": 30,
+      "reasoning": "Repo `mkelsey/invoice-sync` implements a versioned REST API with resource transformers and rate-limit handling, matching the CV's claim of building a billing integration."
+    },
+    {
+      "name": "Testing & code quality",
+      "score": 61,
+      "weight": 30,
+      "reasoning": "Test coverage is present but shallow: two of three inspected repos have PHPUnit suites under 30% file coverage, and none use mutation testing or CI-enforced coverage gates."
+    }
+  ],
+  "claims": [
+    {
+      "claim": "Built and maintained a Laravel-based billing platform processing recurring invoices",
+      "status": "verified",
+      "evidence": "class InvoiceSyncService implements handles Stripe webhook reconciliation with idempotency keys and queued retry backoff",
+      "source": "repo",
+      "source_ref": "mkelsey/invoice-sync/app/Services/InvoiceSyncService.php:22"
+    },
+    {
+      "claim": "5+ years of professional PHP experience",
+      "status": "verified",
+      "evidence": "Senior Backend Engineer, Nov 2020 - Present; PHP Developer, Jun 2019 - Oct 2020",
+      "source": "cv",
+      "source_ref": ""
+    },
+    {
+      "claim": "Wrote comprehensive automated test suites for every project",
+      "status": "weak",
+      "evidence": "tests/Feature contains 4 files covering 2 of 11 controllers",
+      "source": "repo",
+      "source_ref": "mkelsey/invoice-sync/tests/Feature:11"
+    },
+    {
+      "claim": "Led a team of 3 backend developers on the payments migration",
+      "status": "unsupported",
+      "evidence": "No commit co-authorship, PR review activity, or organization membership indicating a leadership role was found on the candidate's public GitHub profile",
+      "source": "github_profile",
+      "source_ref": ""
+    }
+  ],
+  "interview_questions": [
+    {
+      "question": "Walk me through how InvoiceSyncService handles a duplicate Stripe webhook delivery. What would break if the idempotency key check were removed?",
+      "targets_skill": "API design & integration",
+      "grounded_in": "mkelsey/invoice-sync/app/Services/InvoiceSyncService.php:L22-L58",
+      "ideal_answer_points": [
+        "Explains idempotency keys prevent double-processing of retried webhook deliveries",
+        "Identifies that removing the check would cause duplicate invoice charges",
+        "Mentions the queued retry backoff as the source of duplicate deliveries"
+      ]
+    },
+    {
+      "question": "Only 2 of 11 controllers in invoice-sync have feature tests. How would you have prioritized test coverage on that project, and why weren't the others covered?",
+      "targets_skill": "Testing & code quality",
+      "grounded_in": "mkelsey/invoice-sync/tests/Feature:11",
+      "ideal_answer_points": [
+        "Acknowledges the coverage gap honestly rather than deflecting",
+        "Proposes a risk-based prioritization (payment paths first)",
+        "Gives a credible reason for the gap (deadline pressure, legacy code, etc.)"
+      ]
+    },
+    {
+      "question": "Your CV mentions leading a team of 3 on the payments migration, but that isn't visible in your public repo activity. Describe your actual role and responsibilities on that migration.",
+      "targets_skill": "Team ownership & collaboration",
+      "grounded_in": "job_requirement",
+      "ideal_answer_points": [
+        "Gives specific, concrete examples of decisions or reviews they drove",
+        "Clarifies whether 'led' meant technical lead vs. people management",
+        "Names teammates or artifacts (PRs, design docs) that corroborate the claim"
+      ]
+    }
+  ],
+  "rubric": {
+    "criteria": [
+      { "name": "Laravel / PHP backend development", "weight": 40, "description": "Depth and recency of production PHP/Laravel work, not tutorial or bootcamp projects." },
+      { "name": "API design & integration", "weight": 30, "description": "Ability to design, version, and secure REST APIs and third-party integrations." },
+      { "name": "Testing & code quality", "weight": 30, "description": "Presence and depth of automated tests, and general code hygiene." }
+    ],
+    "scale": "0-100, weighted average rounded to nearest integer"
+  },
+  "fairness_note": "No protected attributes (age, gender, ethnicity, nationality, religion) were used in this assessment."
+}
