@@ -30,6 +30,7 @@ Route::prefix('hr')->name('hr.')->group(function (): void {
 
     Route::get('candidates/{candidate}/analysis', [AnalysisController::class, 'show'])->name('candidates.analysis');
 
+    Route::get('candidates/{candidate}/interview', [InterviewController::class, 'index'])->name('candidates.interview');
     Route::post('interview/speak', [InterviewController::class, 'speak'])->name('interview.speak');
     Route::get('candidates/{candidate}/interview/question', [InterviewController::class, 'question'])->name('candidates.interview.question');
     Route::post('candidates/{candidate}/interview/answer', [InterviewController::class, 'answer'])->name('candidates.interview.answer');

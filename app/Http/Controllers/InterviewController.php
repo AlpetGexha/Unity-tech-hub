@@ -8,12 +8,24 @@ use App\Models\Interview;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Inertia\Inertia;
+use Inertia\Response;
 use Laravel\Ai\Audio;
 use Laravel\Ai\Transcription;
 use RuntimeException;
 
 class InterviewController extends Controller
 {
+    /**
+     * Show the voice interview page for a candidate.
+     */
+    public function index(Candidate $candidate): Response
+    {
+        return Inertia::render('hr/interview', [
+            'candidateId' => $candidate->id,
+        ]);
+    }
+
     /**
      * Generate speech for the given text and return its public URL.
      */

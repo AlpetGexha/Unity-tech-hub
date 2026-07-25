@@ -10,6 +10,7 @@ use App\Models\JobOpening;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Inertia\Testing\AssertableInertia;
 use Laravel\Ai\Audio;
 use Laravel\Ai\Transcription;
 use Tests\TestCase;
@@ -17,6 +18,18 @@ use Tests\TestCase;
 class HrInterviewTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_the_interview_page_renders_for_a_candidate(): void
+    {
+        $candidate = $this->candidateWithAnalysis();
+
+        $this->get('/hr/candidates/'.$candidate->id.'/interview')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('hr/interview')
+                ->where('candidateId', $candidate->id)
+            );
+    }
 
     public function test_speak_generates_audio_and_returns_a_public_url(): void
     {
