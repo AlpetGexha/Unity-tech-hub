@@ -1,4 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
+import CandidateController from '@/actions/App/Http/Controllers/CandidateController';
 import { ClaimList } from '@/components/claim-list';
 import { DecisionReport } from '@/components/decision-report';
 import { SkillChart } from '@/components/skill-chart';
@@ -46,7 +47,7 @@ export default function CandidateAnalysis({
      * because a page that quietly renders a fabricated candidate is worse than
      * a page that renders nothing.
      */
-    if (!analysis) {
+    if (!analysis?.overall) {
         return (
             <>
                 <Head title="Candidate analysis" />
@@ -69,7 +70,7 @@ export default function CandidateAnalysis({
                         </p>
 
                         <Button asChild>
-                            <Link href="/hr/candidates/create">
+                            <Link href={CandidateController.create()}>
                                 Go to candidates
                             </Link>
                         </Button>
@@ -79,7 +80,23 @@ export default function CandidateAnalysis({
         );
     }
 
-    const { overall, skills, claims, rubric } = analysis;
+    /**
+     * `analyses.result` is a JSON blob, so a row written by an older shape can
+     * satisfy the type at compile time and still be missing keys at runtime.
+     * Fill the collection-shaped keys here, once, rather than guarding each of
+     * the readers downstream.
+     */
+    const overall = analysis.overall;
+    const skills = analysis.skills ?? [];
+    const claims = analysis.claims ?? [];
+    const rubric = analysis.rubric ?? { criteria: [], scale: '' };
+    const safeAnalysis: Analysis = {
+        ...analysis,
+        skills,
+        claims,
+        rubric,
+        interview_questions: analysis.interview_questions ?? [],
+    };
 
     return (
         <>
@@ -149,11 +166,13 @@ export default function CandidateAnalysis({
                                 {overall.summary}
                             </p>
 
-                            <p className="text-xs text-muted-foreground">
-                                Scored on the role&rsquo;s rubric (
-                                {rubric.scale}
-                                ).
-                            </p>
+                            {rubric.scale !== '' && (
+                                <p className="text-xs text-muted-foreground">
+                                    Scored on the role&rsquo;s rubric (
+                                    {rubric.scale}
+                                    ).
+                                </p>
+                            )}
                         </div>
                     </div>
                 </section>
@@ -215,7 +234,7 @@ export default function CandidateAnalysis({
                     </div>
                 </section>
 
-                <DecisionReport analysis={analysis} />
+                <DecisionReport analysis={safeAnalysis} />
             </div>
         </>
     );

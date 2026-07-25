@@ -1,4 +1,5 @@
 import { Form, Head } from '@inertiajs/react';
+import JobController from '@/actions/App/Http/Controllers/JobController';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,8 +25,7 @@ export default function Jobs() {
                 </header>
 
                 <Form
-                    action="/hr/jobs"
-                    method="post"
+                    {...JobController.store.form()}
                     disableWhileProcessing
                     className="space-y-6"
                 >
@@ -134,7 +134,7 @@ Jobs.layout = {
     breadcrumbs: [
         {
             title: 'Add a role',
-            href: '/hr/jobs',
+            href: JobController.index(),
         },
     ],
 };

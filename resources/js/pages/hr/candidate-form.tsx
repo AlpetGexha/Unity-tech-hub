@@ -1,6 +1,8 @@
 import { Form, Head, Link } from '@inertiajs/react';
 import { useRef, useState } from 'react';
 import type { ChangeEvent } from 'react';
+import CandidateController from '@/actions/App/Http/Controllers/CandidateController';
+import JobController from '@/actions/App/Http/Controllers/JobController';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,7 +11,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
 
 type SavedCandidate = {
-    id: number | string;
+    id: number;
     name: string;
 };
 
@@ -98,7 +100,7 @@ export default function CandidateForm({
                         </p>
 
                         <Button asChild>
-                            <Link href="/hr/jobs">Add a role</Link>
+                            <Link href={JobController.index()}>Add a role</Link>
                         </Button>
                     </div>
                 </div>
@@ -115,8 +117,7 @@ export default function CandidateForm({
 
                 {candidate && (
                     <Form
-                        action={`/hr/candidates/${candidate.id}/analyze`}
-                        method="post"
+                        {...CandidateController.analyze.form(candidate.id)}
                         disableWhileProcessing
                         className="space-y-3 rounded-xl border bg-card p-5 text-card-foreground"
                     >
@@ -144,8 +145,7 @@ export default function CandidateForm({
                 )}
 
                 <Form
-                    action="/hr/candidates"
-                    method="post"
+                    {...CandidateController.store.form()}
                     disableWhileProcessing
                     className="space-y-6"
                 >
@@ -259,6 +259,7 @@ export default function CandidateForm({
                                 <Input
                                     id="github_username"
                                     name="github_username"
+                                    required
                                     autoComplete="off"
                                     spellCheck={false}
                                     placeholder="mkelsey"
@@ -274,9 +275,8 @@ export default function CandidateForm({
                                     id="github_username-help"
                                     className="text-sm text-muted-foreground"
                                 >
-                                    Public repositories only. Without this we
-                                    can still read the CV, but we cannot check
-                                    it against any code.
+                                    Public repositories only. This is what the
+                                    CV gets checked against, so we need it.
                                 </p>
 
                                 <InputError message={errors.github_username} />
@@ -326,7 +326,7 @@ CandidateForm.layout = {
     breadcrumbs: [
         {
             title: 'Add a candidate',
-            href: '/hr/candidates/create',
+            href: CandidateController.create(),
         },
     ],
 };

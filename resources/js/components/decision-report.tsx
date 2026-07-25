@@ -186,9 +186,11 @@ export function DecisionReport({
                             Rubric this role is scored on
                         </h3>
 
-                        <p className="text-xs text-muted-foreground">
-                            Scale: {analysis.rubric.scale}
-                        </p>
+                        {analysis.rubric.scale !== '' && (
+                            <p className="text-xs text-muted-foreground">
+                                Scale: {analysis.rubric.scale}
+                            </p>
+                        )}
 
                         <dl className="space-y-3">
                             {analysis.rubric.criteria.map((criterion) => (
