@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Ai\Audio;
 use Laravel\Ai\Transcription;
+use RuntimeException;
 
 class InterviewController extends Controller
 {
@@ -23,6 +24,10 @@ class InterviewController extends Controller
         ]);
 
         $path = Audio::of($validated['text'])->generate()->storePublicly('interviews', 'public');
+
+        if (! is_string($path)) {
+            throw new RuntimeException('Failed to store the generated interview audio.');
+        }
 
         return response()->json([
             'url' => Storage::disk('public')->url($path),
@@ -62,7 +67,7 @@ class InterviewController extends Controller
         $transcript = (string) Transcription::fromUpload($request->file('audio'))->generate();
 
         $graded = (new InterviewGrader($validated['question'], $validated['ideal_answer_points']))
-            ->prompt($transcript);
+            ->grade($transcript);
 
         return response()->json([
             'transcript' => $transcript,
