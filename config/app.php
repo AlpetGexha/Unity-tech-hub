@@ -123,4 +123,16 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Demo Fake AI
+    |--------------------------------------------------------------------------
+    |
+    | When enabled, every AI-calling class is switched to its fake gateway at
+    | boot time so the demo can run with zero network calls to OpenAI.
+    |
+    */
+
+    'demo_fake_ai' => env('DEMO_FAKE_AI', false),
+
 ];
