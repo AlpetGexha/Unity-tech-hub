@@ -1,4 +1,4 @@
-import { Form, Head } from '@inertiajs/react';
+import { Form, Head, Link } from '@inertiajs/react';
 import { useRef, useState } from 'react';
 import type { ChangeEvent } from 'react';
 import InputError from '@/components/input-error';
@@ -13,10 +13,38 @@ type SavedCandidate = {
     name: string;
 };
 
+type SelectableJob = {
+    id: number;
+    title: string;
+};
+
+/**
+ * A native select rather than the Radix one: it submits its value inside an
+ * uncontrolled Inertia `<Form>` without extra wiring, and `required` gets
+ * browser validation for free, exactly like the other fields here.
+ */
+const selectClasses =
+    'flex h-9 w-full min-w-0 rounded-md border border-input bg-transparent px-3 py-1 text-base text-foreground shadow-xs transition-[color,box-shadow] outline-none disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40';
+
+const pageHeader = (
+    <header className="space-y-1">
+        <h1 className="text-xl font-semibold tracking-tight">
+            Add a candidate
+        </h1>
+
+        <p className="text-sm text-muted-foreground">
+            Paste the CV and, if they have one, their GitHub username. We check
+            what the CV claims against the code they have actually published.
+        </p>
+    </header>
+);
+
 export default function CandidateForm({
     candidate,
+    jobs = [],
 }: {
     candidate?: SavedCandidate;
+    jobs?: SelectableJob[];
 }) {
     const cvField = useRef<HTMLTextAreaElement>(null);
     const [fileError, setFileError] = useState<string>('');
@@ -52,22 +80,38 @@ export default function CandidateForm({
         }
     };
 
+    if (jobs.length === 0) {
+        return (
+            <>
+                <Head title="Add a candidate" />
+
+                <div className="mx-auto flex w-full max-w-3xl flex-col gap-8 p-4 md:p-6">
+                    {pageHeader}
+
+                    <div className="space-y-3 rounded-xl border bg-card p-6 text-card-foreground">
+                        <h2 className="font-medium">Add a role first</h2>
+
+                        <p className="max-w-prose text-sm text-muted-foreground">
+                            Candidates are scored against a role&rsquo;s
+                            requirements, so there has to be a role to score
+                            them against. It takes a minute.
+                        </p>
+
+                        <Button asChild>
+                            <Link href="/hr/jobs">Add a role</Link>
+                        </Button>
+                    </div>
+                </div>
+            </>
+        );
+    }
+
     return (
         <>
             <Head title="Add a candidate" />
 
             <div className="mx-auto flex w-full max-w-3xl flex-col gap-8 p-4 md:p-6">
-                <header className="space-y-1">
-                    <h1 className="text-xl font-semibold tracking-tight">
-                        Add a candidate
-                    </h1>
-
-                    <p className="text-sm text-muted-foreground">
-                        Paste the CV and, if they have one, their GitHub
-                        username. We check what the CV claims against the code
-                        they have actually published.
-                    </p>
-                </header>
+                {pageHeader}
 
                 {candidate && (
                     <Form
@@ -107,6 +151,42 @@ export default function CandidateForm({
                 >
                     {({ processing, errors }) => (
                         <>
+                            <div className="grid gap-2">
+                                <Label htmlFor="job_id">Role</Label>
+
+                                <select
+                                    id="job_id"
+                                    name="job_id"
+                                    required
+                                    defaultValue=""
+                                    className={selectClasses}
+                                    aria-describedby="job_id-help"
+                                    aria-invalid={
+                                        errors.job_id ? true : undefined
+                                    }
+                                >
+                                    <option value="" disabled>
+                                        Choose a role
+                                    </option>
+
+                                    {jobs.map((job) => (
+                                        <option key={job.id} value={job.id}>
+                                            {job.title}
+                                        </option>
+                                    ))}
+                                </select>
+
+                                <p
+                                    id="job_id-help"
+                                    className="text-sm text-muted-foreground"
+                                >
+                                    This candidate is scored against the
+                                    requirements you saved for this role.
+                                </p>
+
+                                <InputError message={errors.job_id} />
+                            </div>
+
                             <div className="grid gap-2">
                                 <Label htmlFor="name">Name</Label>
 
