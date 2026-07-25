@@ -1,11 +1,9 @@
-import { Head } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import { ClaimList } from '@/components/claim-list';
 import { DecisionReport } from '@/components/decision-report';
 import { SkillChart } from '@/components/skill-chart';
-import analysisMock from '@/mocks/analysis.json';
+import { Button } from '@/components/ui/button';
 import type { Analysis, Recommendation } from '@/types/analysis';
-
-const mockAnalysis = analysisMock as Analysis;
 
 const recommendationLabels: Record<Recommendation, string> = {
     strong_yes: 'Strong yes',
@@ -39,10 +37,48 @@ const analysedOn = (generatedAt: string): string => {
 };
 
 export default function CandidateAnalysis({
-    analysis = mockAnalysis,
+    analysis,
 }: {
-    analysis?: Analysis;
+    analysis?: Analysis | null;
 }) {
+    /**
+     * Never fall back to the mock. A missing or renamed prop must look empty,
+     * because a page that quietly renders a fabricated candidate is worse than
+     * a page that renders nothing.
+     */
+    if (!analysis) {
+        return (
+            <>
+                <Head title="Candidate analysis" />
+
+                <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 p-4 md:p-6">
+                    <header className="space-y-1">
+                        <h1 className="text-xl font-semibold tracking-tight">
+                            Candidate analysis
+                        </h1>
+                    </header>
+
+                    <div className="space-y-3 rounded-xl border bg-card p-6 text-card-foreground">
+                        <h2 className="font-medium">No analysis yet</h2>
+
+                        <p className="max-w-prose text-sm text-muted-foreground">
+                            Nothing has been analysed for this candidate. Run an
+                            analysis and the fit score, the skill breakdown and
+                            every CV claim checked against real code will appear
+                            here.
+                        </p>
+
+                        <Button asChild>
+                            <Link href="/hr/candidates/create">
+                                Go to candidates
+                            </Link>
+                        </Button>
+                    </div>
+                </div>
+            </>
+        );
+    }
+
     const { overall, skills, claims, rubric } = analysis;
 
     return (

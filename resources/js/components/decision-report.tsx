@@ -13,6 +13,10 @@ const statusWords: Record<ClaimStatus, string> = {
 const rule = (heading: string): string =>
     `${heading}\n${'-'.repeat(heading.length)}`;
 
+/** `grounded_in` is either a file and line range, or the sentinel below. */
+const groundedInLabel = (groundedIn: string): string =>
+    groundedIn === 'job_requirement' ? 'the role requirements' : groundedIn;
+
 /**
  * A hiring file has to be readable by a person years later, so the text export
  * carries the same evidence the screen shows rather than a score summary.
@@ -62,6 +66,25 @@ const toPlainText = (analysis: Analysis): string => {
             '',
         );
     });
+
+    if (analysis.interview_questions.length > 0) {
+        lines.push(rule('INTERVIEW QUESTIONS'), '');
+
+        analysis.interview_questions.forEach((question, index) => {
+            lines.push(
+                `${index + 1}. ${question.question}`,
+                `   Tests: ${question.targets_skill}`,
+                `   Grounded in: ${groundedInLabel(question.grounded_in)}`,
+                '   A good answer covers:',
+            );
+
+            question.ideal_answer_points.forEach((point) => {
+                lines.push(`     - ${point}`);
+            });
+
+            lines.push('');
+        });
+    }
 
     lines.push(rule('FAIRNESS'), analysis.fairness_note, '');
 
@@ -214,6 +237,81 @@ export function DecisionReport({
 
                         <ClaimList claims={analysis.claims} />
                     </div>
+
+                    {analysis.interview_questions.length > 0 && (
+                        <div className="space-y-3">
+                            <h3 className="text-sm font-semibold">
+                                Questions to ask, and where they come from
+                            </h3>
+
+                            <ol className="space-y-3">
+                                {analysis.interview_questions.map(
+                                    (question, index) => (
+                                        <li
+                                            key={`${question.question}-${index}`}
+                                            className="space-y-2 rounded-lg border p-4"
+                                        >
+                                            <p className="leading-snug font-medium">
+                                                {question.question}
+                                            </p>
+
+                                            <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                                                <span>
+                                                    Tests{' '}
+                                                    {question.targets_skill}
+                                                </span>
+
+                                                <span aria-hidden="true">
+                                                    &middot;
+                                                </span>
+
+                                                {question.grounded_in ===
+                                                'job_requirement' ? (
+                                                    <span>
+                                                        Grounded in the role
+                                                        requirements
+                                                    </span>
+                                                ) : (
+                                                    <span>
+                                                        Grounded in{' '}
+                                                        <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-[0.7rem] break-all text-foreground">
+                                                            {
+                                                                question.grounded_in
+                                                            }
+                                                        </code>
+                                                    </span>
+                                                )}
+                                            </p>
+
+                                            {question.ideal_answer_points
+                                                .length > 0 && (
+                                                <div className="space-y-1">
+                                                    <p className="text-xs font-medium">
+                                                        A good answer covers
+                                                    </p>
+
+                                                    <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+                                                        {question.ideal_answer_points.map(
+                                                            (
+                                                                point,
+                                                                pointIndex,
+                                                            ) => (
+                                                                <li
+                                                                    key={`${point}-${pointIndex}`}
+                                                                >
+                                                                    {point}
+                                                                </li>
+                                                            ),
+                                                        )}
+                                                    </ul>
+                                                </div>
+                                            )}
+                                        </li>
+                                    ),
+                                )}
+                            </ol>
+                        </div>
+                    )}
                 </div>
             </details>
 
